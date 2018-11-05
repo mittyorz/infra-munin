@@ -9,14 +9,19 @@ id=${0##*g128m6e_}
 ## 241: Total_LBAs_Written  => RAW_VALUE * 32 MiB
 ## 242: Total_LBAs_Read => RAW_VALUE * 32 MiB
 
-if [ ! -b ${device} ]; then
-    echo "${device} is not a device."
+if [ -z "${id}" ]; then
+    echo 'plugin filename is wrong. it should be g128m6e_`id`' >&2
+    exit 1
+fi
+
+if [ ! -b "${device}" ]; then
+    echo "${device} is not a device." >&2
     exit 1
 fi
 
 line=$(/usr/bin/smartctl -A ${device} | /usr/bin/grep "${id}")
 if [ -z "${line}" ]; then
-    echo "cannot retrieve value from ${device}"
+    echo "cannot retrieve value from ${device}" >&2
     exit 1
 fi
 
