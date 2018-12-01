@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Plugin to monitor specific S.M.A.R.T. attributes of Plextor PX-G128M6e with smartctl command
+# Wildcard plugin to monitor specific S.M.A.R.T. attributes of Plextor PX-G128M6e with smartctl command
 
 id=${0##*g128m6e_}
 
@@ -20,7 +20,7 @@ if [ ! -b "${device}" ]; then
 fi
 
 if [ "$(id -u)" != "0" ]; then
-    echo "this plugin need 'user root' to run" >&2
+    echo "this plugin need 'root' privilege to run" >&2
     exit 1
 fi
 
@@ -43,8 +43,8 @@ if [ "$1" = "config" ]; then
         echo "graph_args --base 1024"
         echo "graph_vlabel bytes"
     fi
-    echo "graph_info This graph monitors specific S.M.A.R.T. attributes of Plextor PX-G128M6e"
-    echo "graph_category plextor"
+    echo "graph_info This graph shows the value of specific S.M.A.R.T. attributes of Plextor PX-G128M6e (${device})"
+    echo "graph_category smart"
 
     echo "id${id}.label ${name}"
     echo "id${id}.type GAUGE"
