@@ -24,7 +24,7 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
-line=$(/usr/bin/smartctl -A ${device} | grep "${id}")
+line=$(/usr/sbin/smartctl -A ${device} | grep "${id}")
 if [ -z "${line}" ]; then
     echo "cannot retrieve value from ${device}" >&2
     exit 1
