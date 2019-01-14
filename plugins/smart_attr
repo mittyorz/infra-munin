@@ -1,0 +1,196 @@
+#!/usr/bin/perl
+
+# smart_attr - MMunin multigraph plugin to monitor specific S.M.A.R.T. attributes,
+# from supported storage devices with smartctl command
+#
+# Copyright (C) 2019 Ken-ichi Mito
+
+=head1 NAME
+
+smart_attr - MMunin multigraph plugin to monitor specific S.M.A.R.T. attributes,
+from supported storage devices with smartctl command
+
+=head1 APPLICABLE SYSTEMS
+
+Linux system with smartmontools installed.
+
+=head1 CONFIGURATION
+
+This plugin requires the devices name to fetch S.M.A.R.T. attributes,
+and also needs root privilege to run.
+Set them through environment variables.
+
+    [smart_attr]
+        user root
+        env.device sda sdb
+
+=head2 DEBUG
+
+This plugin does not use MUNIN_DEBUG environment variable,
+but for debugging usage, setting env.debug to 1 outputs more verbose messages to stderr.
+
+=head1 INTERPRETATION
+
+This plugin fetches specific S.M.A.R.T. attributes and make line graphs.
+Some attributes will be multiplied, because original values are a little confusing.
+
+=head2 Supported Devices
+
+PLEXTOR PX-G128M6e
+Seagate Barracuda ST4000DM004-2CV104
+
+=head2 Supported Attributes
+
+PLEXTOR PX-G128M6e
+    177: Wear_Leveling_Count => RAW_VALUE (count)
+    241: Total_LBAs_Written  => RAW_VALUE * 32 (MiB)
+    242: Total_LBAs_Read => RAW_VALUE * 32 (MiB)
+
+Seagate Barracuda ST4000DM004-2CV104
+    241: Total_LBAs_Written  => RAW_VALUE * 512 (Bytes)
+    242: Total_LBAs_Read => RAW_VALUE * 512 (Bytes)
+
+=head1 MAGIC MARKERS
+
+ #%# family=manual
+ #%# capabilities=multigraph
+
+=head1 AUTHOR
+
+Ken-ichi Mito
+
+=head1 LICENSE
+
+2-clause BSD License
+
+=cut
+
+use strict;
+use warnings;
+use Carp;
+use utf8;
+
+use Munin::Plugin;
+
+my $DEBUG = defined $ENV{debug} ? $ENV{debug} : 0;
+
+if ($<) {
+    croak "this plugin need 'root' privilege to run";
+}
+
+# check current environment supports multigraph plugins
+need_multigraph();
+
+# hardcoded constants to skip unsupported devices, multiply values,
+# and output messages
+my $SMART_ATTR = {
+};
+
+# say 'no' for autoconf
+if ($ARGV[0] and $ARGV[0] eq 'autoconf') {
+    print "no (you should setup manually this plugin\n";
+    exit 0;
+}
+
+
+# dummy output for test
+
+if ($ARGV[0] and $ARGV[0] eq 'config') {
+    print_config();
+    exit 0;
+}
+
+print_graphs();
+
+# end of plugin execution
+exit 0;
+
+# print_config
+#
+# output config for root and deeeper graphs
+
+sub print_config {
+    # config for root graphs
+    print <<"EOF";
+multigraph smart_attr_177
+graph_title Wear_Leveling_Count per device (177)
+graph_args --base 1000
+graph_vlabel counts
+graph_info This graph shows the value of Wear_Leveling_Count S.M.A.R.T. attributes
+graph_category smart
+id177.label Wear_Leveling_Count
+id177.type GAUGE
+id177.min 0
+
+multigraph smart_attr_241
+graph_title Total_LBAs_Written per device (241)
+graph_args --base 1024
+graph_vlabel bytes
+graph_info This graph shows the value of Total_LBAs_Written S.M.A.R.T. attributes
+graph_category smart
+id241.label Total_LBAs_Written
+id241.type GAUGE
+id241.min 0
+
+multigraph smart_attr_242
+graph_title Total_LBAs_Read per device (242)
+graph_args --base 1024
+graph_vlabel bytes
+graph_info This graph shows the value of Total_LBAs_Read S.M.A.R.T. attributes
+graph_category smart
+id242.label Total_LBAs_Read
+id242.type GAUGE
+id242.min 0
+
+EOF
+
+    return;
+    # config for deeeper graphs
+    print <<"EOF";
+multigraph smart_attr_177.sda
+graph_title Wear_Leveling_Count (sda)
+graph_args --base 1000
+graph_vlabel counts
+graph_info This graph shows the value of Wear_Leveling_Count S.M.A.R.T. attributes
+graph_category smart
+id177.label Wear_Leveling_Count
+id177.type GAUGE
+id177.min 0
+
+multigraph smart_attr_241.sda
+graph_title Total_LBAs_Written (sda)
+graph_args --base 1024
+graph_vlabel bytes
+graph_info This graph shows the value of Total_LBAs_Written S.M.A.R.T. attributes
+graph_category smart
+id241.label Total_LBAs_Written
+id241.type GAUGE
+id241.min 0
+
+multigraph smart_attr_242.sda
+graph_title Total_LBAs_Read (sda)
+graph_args --base 1024
+graph_vlabel bytes
+graph_info This graph shows the value of Total_LBAs_Read S.M.A.R.T. attributes
+graph_category smart
+id242.label Total_LBAs_Read
+id242.type GAUGE
+id242.min 0
+
+EOF
+}
+
+sub print_graphs {
+    # print  graphs
+    print <<"EOF";
+multigraph smart_attr_177
+id177.value 168023
+
+multigraph smart_attr_241
+id241.value 8928633028608
+
+multigraph smart_attr_242
+id242.value 3149217660928
+
+EOF
+}
