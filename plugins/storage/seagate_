@@ -24,7 +24,7 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 model=$(/usr/sbin/smartctl -i ${device} | grep "Device Model:" | cut -d':' -f2)
-line=$(/usr/sbin/smartctl -A ${device} | grep "${id}")
+line=$(/usr/sbin/smartctl -A ${device} | grep "^[[:space:]]*${id}")
 if [ -z "${line}" ]; then
     echo "cannot retrieve value from ${device}" >&2
     exit 1
