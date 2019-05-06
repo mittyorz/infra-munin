@@ -1,0 +1,21 @@
+#!/bin/sh
+
+case $1 in
+    config)
+        cat <<'EOM'
+
+graph_title Temperatures
+graph_vlabel degrees Celsius
+graph_args --base 1000 -l 0
+graph_category sensors
+temp.label BCM2835
+temp.warning 60
+temp.critical 85
+
+EOM
+        exit 0
+        ;;
+esac
+
+echo -n "temp.value "
+/opt/vc/bin/vcgencmd measure_temp | cut -d "=" -f2 | cut -d "'" -f1
