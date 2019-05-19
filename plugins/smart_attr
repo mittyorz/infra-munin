@@ -144,7 +144,6 @@ id242.min 0
 
 EOF
 
-    return;
     # config for deeeper graphs
     print <<"EOF";
 multigraph smart_attr_177.sda
@@ -181,7 +180,7 @@ EOF
 }
 
 sub print_graphs {
-    # print  graphs
+    # print root graphs
     print <<"EOF";
 multigraph smart_attr_177
 id177.value 168023
@@ -190,6 +189,19 @@ multigraph smart_attr_241
 id241.value 8928633028608
 
 multigraph smart_attr_242
+id242.value 3149217660928
+
+EOF
+
+    # print deeeper graphs
+    print <<"EOF";
+multigraph smart_attr_177.sda
+id177.value 168023
+
+multigraph smart_attr_241.sda
+id241.value 8928633028608
+
+multigraph smart_attr_242.sda
 id242.value 3149217660928
 
 EOF
