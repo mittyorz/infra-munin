@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 
-# smart_attr - MMunin multigraph plugin to monitor specific S.M.A.R.T. attributes,
+# smartraw - MMunin multigraph plugin to monitor specific S.M.A.R.T. attributes,
 # from supported storage devices with smartctl command
 #
 # Copyright (C) 2019 Ken-ichi Mito
 
 =head1 NAME
 
-smart_attr - MMunin multigraph plugin to monitor specific S.M.A.R.T. attributes,
+smartraw - MMunin multigraph plugin to monitor specific S.M.A.R.T. attributes,
 from supported storage devices with smartctl command
 
 =head1 APPLICABLE SYSTEMS
@@ -20,7 +20,7 @@ This plugin requires the devices name to fetch S.M.A.R.T. attributes,
 and also needs root privilege to run.
 Set them through environment variables.
 
-    [smart_attr]
+    [smartraw]
         user root
         env.device sda sdb
 
