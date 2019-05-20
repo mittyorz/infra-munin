@@ -1,14 +1,14 @@
 #!/usr/bin/perl
 
-# smartraw - MMunin multigraph plugin to monitor specific S.M.A.R.T. attributes,
-# from supported storage devices with smartctl command
+# smartraw - MMunin multigraph plugin to monitor raw S.M.A.R.T. attributes,
+# from storage devices with smartctl command
 #
 # Copyright (C) 2019 Ken-ichi Mito
 
 =head1 NAME
 
-smartraw - MMunin multigraph plugin to monitor specific S.M.A.R.T. attributes,
-from supported storage devices with smartctl command
+smartraw - MMunin multigraph plugin to monitor raw S.M.A.R.T. attributes,
+from storage devices with smartctl command
 
 =head1 APPLICABLE SYSTEMS
 
@@ -16,13 +16,14 @@ Linux system with smartmontools installed.
 
 =head1 CONFIGURATION
 
-This plugin requires the devices name to fetch S.M.A.R.T. attributes,
-and also needs root privilege to run.
-Set them through environment variables.
+This plugin needs root privilege to fetch S.M.A.R.T. attributes.
 
     [smartraw]
         user root
-        env.device sda sdb
+        env.devices sda sdb
+
+smartctl: path to smartctl program (default: /usr/sbin/smartctl)
+devices: list of devices to monitor
 
 =head2 DEBUG
 
@@ -34,12 +35,13 @@ but for debugging usage, setting env.debug to 1 outputs more verbose messages to
 This plugin fetches specific S.M.A.R.T. attributes and make line graphs.
 Some attributes will be multiplied, because original values are a little confusing.
 
-=head2 Supported Devices
+=head2 Attributes
 
-PLEXTOR PX-G128M6e
-Seagate Barracuda ST4000DM004-2CV104
+Most normal devices give 5, 9, 12, 197
+PLEXTOR PX-G128M6e also gives 177, 241 and 242
+Seagate Barracuda ST4000DM004-2CV104 also gives 241 and 242
 
-=head2 Supported Attributes
+=head2 Details of attributes
 
 PLEXTOR PX-G128M6e
     177: Wear_Leveling_Count => RAW_VALUE (count)
