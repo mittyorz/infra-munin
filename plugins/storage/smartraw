@@ -94,6 +94,16 @@ if ($ARGV[0] and $ARGV[0] eq 'autoconf') {
     exit 0;
 }
 
+# list up block devices
+my @devices;
+if (exists $ENV{devices}) {
+    @devices = split(' ', $ENV{devices});
+}
+else {
+    opendir(DEV, '/dev/') or croak "Failed to open '/dev/' directory: $!";
+    @devices = grep {/^(hd[a-z]|sd[a-z]|nvme[0-9]+n[0-9]+)$/} readdir(DEV);
+    closedir(DEV);
+}
 
 # dummy output for test
 
