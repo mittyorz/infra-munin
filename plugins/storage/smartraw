@@ -107,16 +107,16 @@ else {
 }
 
 # fetch current S.M.A.R.T. attributes
-my %smart_attributes = load_smart_attributes(@devices);
+my $smart_attributes = load_smart_attributes(@devices);
 
 # dummy output for test
 
 if ($ARGV[0] and $ARGV[0] eq 'config') {
-    print_config(\%smart_attributes);
+    print_config($smart_attributes);
     exit 0;
 }
 
-print_graphs(\%smart_attributes);
+print_graphs($smart_attributes);
 
 # end of plugin execution
 exit 0;
