@@ -40,6 +40,7 @@ Some attributes will be multiplied, because original values are a little confusi
 Most normal devices give 5, 9, 12, 197
 PLEXTOR PX-G128M6e also gives 177, 241 and 242
 Seagate Barracuda ST4000DM004-2CV104 also gives 241 and 242
+SanDisk SDCZ80-016G (SanDisk SSD U100 16GB) gives 241 and 242
 
 =head2 Details of attributes
 
@@ -48,7 +49,7 @@ PLEXTOR PX-G128M6e
     241: Total_LBAs_Written  => RAW_VALUE * 32 (MiB)
     242: Total_LBAs_Read => RAW_VALUE * 32 (MiB)
 
-Seagate Barracuda ST4000DM004-2CV104
+Seagate Barracuda ST4000DM004-2CV104 and SanDisk SDCZ80-016G
     241: Total_LBAs_Written  => RAW_VALUE * 512 (Bytes)
     242: Total_LBAs_Read => RAW_VALUE * 512 (Bytes)
 
@@ -105,17 +106,29 @@ else {
     closedir(DEV);
 }
 
+# fetch current S.M.A.R.T. attributes
+my %smart_attributes = load_smart_attributes(@devices);
+
 # dummy output for test
 
 if ($ARGV[0] and $ARGV[0] eq 'config') {
-    print_config();
+    print_config(\%smart_attributes);
     exit 0;
 }
 
-print_graphs();
+print_graphs(\%smart_attributes);
 
 # end of plugin execution
 exit 0;
+
+
+# load_smart_attributes
+#
+# load current S.M.A.R.T. attributes by using smartclt command
+
+sub load_smart_attributes {
+    my @devices = @_;
+}
 
 # print_config
 #
