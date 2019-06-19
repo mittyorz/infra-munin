@@ -125,10 +125,97 @@ exit 0;
 
 # load_smart_attributes
 #
-# load current S.M.A.R.T. attributes by using smartclt command
+# load current S.M.A.R.T. attributes by using smartctl command
 
 sub load_smart_attributes {
     my @devices = @_;
+    my $smart_attributes = {};
+
+    foreach my $device (@devices) {
+        my $devicepath = '/dev/' . $device;
+        my $raw_smart_log = read_smart($devicepath);
+        
+        $smart_attributes->{$device} = {
+            info => parse_smart_info($raw_smart_log),
+            attr => parse_smart_data($raw_smart_log),
+        }
+    }
+
+    return $smart_attributes;
+}
+
+# exec smartctl and read its output
+sub read_smart {
+    my $devicepath = shift;
+
+    my $command = exists $ENV{smartctl} ? $ENV{smartctl} : '/usr/sbin/smartctl';
+    open my $smartctl, '-|', $command, '-A -i', $devicepath
+        or croak "Failed to exec smartctl -A -i $devicepath: $!";
+
+    my @results = <$smartctl>;
+    chomp @results;
+    return \@results;
+}
+
+# parse INFORMATION SECTION
+sub parse_smart_info {
+    my $logs = shift;
+
+    my $model = "";
+    my $serial = "";
+
+    my $inside_section = 0;
+    foreach my $line (@$logs) {
+        if (! $inside_section) {
+            #skip until '=== START OF INFORMATION SECTION ==='
+            if ($line =~ /START OF INFORMATION SECTION/) {
+                $inside_section = 1;
+            }
+            continue;
+        }
+        else {
+            if ($line =~ /^Device Model:\s+(.+)/) {
+                $model = $1;
+            }
+            if ($line =~ /^Device:\s+(.+)/) {
+                $model = $1;
+            }
+            if ($line =~ /^Serial Number:\s+(.+)/) {
+                $serial = $1;
+            }
+        }
+    }
+
+    return {
+        device_model => $model,
+        serial_number => $serial,
+    }
+}
+
+# parse SMART DATA SECTION
+sub parse_smart_data {
+    my $logs = shift;
+
+    my $attributes = {};
+
+    my $inside_section = 0;
+    foreach my $line (@$logs) {
+        if (! $inside_section) {
+            #skip until '=== START OF READ SMART DATA SECTION ==='
+            if ($line =~ /START OF READ SMART DATA SECTION/) {
+                $inside_section = 1;
+            }
+            continue;
+        }
+        else {
+            if ($line =~ /^\s*(\d+)\s+/) {
+                my @elem = split(/\s+/, $line);
+                $attributes->{$elem[0]} = $elem[9];
+            }
+        }
+    }
+
+    return $attributes;
 }
 
 # print_config
