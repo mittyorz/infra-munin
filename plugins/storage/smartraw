@@ -171,7 +171,7 @@ sub parse_smart_info {
             if ($line =~ /START OF INFORMATION SECTION/) {
                 $inside_section = 1;
             }
-            continue;
+            next;
         }
         else {
             if ($line =~ /^Device Model:\s+(.+)/) {
@@ -205,10 +205,11 @@ sub parse_smart_data {
             if ($line =~ /START OF READ SMART DATA SECTION/) {
                 $inside_section = 1;
             }
-            continue;
+            next;
         }
         else {
-            if ($line =~ /^\s*(\d+)\s+/) {
+            if ($line =~ /^\s*\d+\s+(\S+\s+){8}/) {
+                $line =~ s/^\s+|\s+$//g;    # trim leading and trailing white spaces
                 my @elem = split(/\s+/, $line);
                 $attributes->{$elem[0]} = $elem[9];
             }
