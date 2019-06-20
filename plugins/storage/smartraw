@@ -135,9 +135,13 @@ sub load_smart_attributes {
         my $devicepath = '/dev/' . $device;
         my $raw_smart_log = read_smart($devicepath);
         
-        $smart_attributes->{$device} = {
-            info => parse_smart_info($raw_smart_log),
-            attr => parse_smart_data($raw_smart_log),
+        my $info = parse_smart_info($raw_smart_log);
+        my $attr = parse_smart_data($raw_smart_log);
+        if ($info and $attr) {
+            $smart_attributes->{$device} = {
+                info => $info,
+                attr => $attr,
+            }
         }
     }
 
@@ -161,8 +165,7 @@ sub read_smart {
 sub parse_smart_info {
     my $logs = shift;
 
-    my $model = "";
-    my $serial = "";
+    my ($model, $serial);
 
     my $inside_section = 0;
     foreach my $line (@$logs) {
@@ -186,9 +189,14 @@ sub parse_smart_info {
         }
     }
 
-    return {
-        device_model => $model,
-        serial_number => $serial,
+    if ($model and $serial) {
+        return {
+            device_model => $model,
+            serial_number => $serial,
+        }
+    }
+    else {
+        return undef;
     }
 }
 
@@ -196,7 +204,7 @@ sub parse_smart_info {
 sub parse_smart_data {
     my $logs = shift;
 
-    my $attributes = {};
+    my $attributes;
 
     my $inside_section = 0;
     foreach my $line (@$logs) {
