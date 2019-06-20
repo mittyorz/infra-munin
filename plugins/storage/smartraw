@@ -129,7 +129,7 @@ exit 0;
 
 sub load_smart_attributes {
     my @devices = @_;
-    my $smart_attributes = {};
+    my $smart_attributes;
 
     foreach my $device (@devices) {
         my $devicepath = '/dev/' . $device;
