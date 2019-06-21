@@ -175,7 +175,7 @@ if (exists $ENV{devices}) {
 }
 else {
     opendir(DEV, '/dev/') or croak "Failed to open '/dev/' directory: $!";
-    @devices = grep {/^(hd[a-z]|sd[a-z]|nvme[0-9]+n[0-9]+)$/} readdir(DEV);
+    @devices = grep {/\A(hd[a-z]|sd[a-z]|nvme[0-9]+n[0-9]+)\z/} readdir(DEV);
     closedir(DEV);
 }
 
@@ -254,13 +254,13 @@ sub parse_smart_info {
             next;
         }
         else {
-            if ($line =~ /^Device Model:\s+(.+)/) {
+            if ($line =~ /\ADevice Model:\s+(.+)/) {
                 $model = $1;
             }
-            if ($line =~ /^Device:\s+(.+)/) {
+            if ($line =~ /\ADevice:\s+(.+)/) {
                 $model = $1;
             }
-            if ($line =~ /^Serial Number:\s+(.+)/) {
+            if ($line =~ /\ASerial Number:\s+(.+)/) {
                 $serial = $1;
             }
         }
@@ -293,8 +293,8 @@ sub parse_smart_data {
             next;
         }
         else {
-            if ($line =~ /^\s*\d+\s+(\S+\s+){8}/) {
-                $line =~ s/^\s+|\s+$//g;    # trim leading and trailing white spaces
+            if ($line =~ /\A\s*\d+\s+(\S+\s+){8}/) {
+                $line =~ s/\A\s+|\s+\z//g;    # trim leading and trailing white spaces
                 my @elem = split(/\s+/, $line);
                 $attributes->{$elem[0]} = $elem[9];
             }
@@ -318,13 +318,13 @@ sub modify_smart_attributes {
             if ($modifier->{info}{serial_number}) {
                 # serial_number must be matched
                 if (! $device->{info}{serial_number} =~
-                    /^$modifier->{info}{serial_number}$/
+                    /\A$modifier->{info}{serial_number}\z/
                 ) { next; }
             }
 
             # device_model must be matched
             if (! $device->{info}{device_model} =~
-                /^$modifier->{info}{device_model}$/
+                /\A$modifier->{info}{device_model}z/
             ) { next; }
 
             foreach my $id (keys %{$device->{attr}}) {
