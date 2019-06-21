@@ -103,10 +103,11 @@ my $SMART_ATTR_MODIFIER = [
     {
         info => {
             device_model => 'ST4000DM004\-2CV104',
+            serial_number => 'WFN0HKE5',
+            # device on shizuku gives weird values on *Hours attributes
         },
         attr => {
             5 => 1,
-            9 => 1 / 24,    # hours to days
             12 => 1,
             197 => 1,
             241 => 512,
@@ -116,11 +117,10 @@ my $SMART_ATTR_MODIFIER = [
     {
         info => {
             device_model => 'ST4000DM004\-2CV104',
-            serial_number => 'WFN0HKE5',
-            # device on shizuku gives weird values on *Hours attributes
         },
         attr => {
             5 => 1,
+            9 => 1 / 24,    # hours to days
             12 => 1,
             197 => 1,
             241 => 512,
