@@ -78,17 +78,84 @@ use Munin::Plugin;
 my $DEBUG = defined $ENV{debug} ? $ENV{debug} : 0;
 my $plugin_name = $Munin::Plugin::me;
 
+# hardcoded constants used to filter/modify raw attributes
+#   5: Reallocated Sectors Count
+#   9: Power-On Hours => /24 days
+#  12: Power Cycle Count
+# 197: Current Pending Sector Count
+# 177: Wear Leveling Count
+# 241: Total LBAs Written
+# 242: Total LBAs Read
+my $SMART_ATTR_MODIFIER = [
+    {
+        info => {
+            device_model => 'PLEXTOR PX\-G128M6e',
+        },
+        attr => {
+            5 => 1,
+            9 => 1 / 24,    # hours to days
+            12 => 1,
+            177 => 1,
+            241 => 32 * 1024 * 1024,
+            242 => 32 * 1024 * 1024,
+        },
+    },
+    {
+        info => {
+            device_model => 'ST4000DM004\-2CV104',
+        },
+        attr => {
+            5 => 1,
+            9 => 1 / 24,    # hours to days
+            12 => 1,
+            197 => 1,
+            241 => 512,
+            242 => 512,
+        },
+    },
+    {
+        info => {
+            device_model => 'ST4000DM004\-2CV104',
+            serial_number => 'WFN0HKE5',
+            # device on shizuku gives weird values on *Hours attributes
+        },
+        attr => {
+            5 => 1,
+            12 => 1,
+            197 => 1,
+            241 => 512,
+            242 => 512,
+        },
+    },
+    {
+        info => {
+            device_model => 'SanDisk SSD U100 16GB',
+        },
+        attr => {
+            241 => 512,
+            242 => 512,
+        },
+    },
+    {
+        info => {
+            device_model => '.+',
+            # most devices come here (default modifier)
+        },
+        attr => {
+            5 => 1,
+            9 => 1 / 24,    # hours to days
+            12 => 1,
+            197 => 1,
+        },
+    },
+];
+
 if ($<) {
     croak "this plugin need 'root' privilege to run";
 }
 
 # check current environment supports multigraph plugins
 need_multigraph();
-
-# hardcoded constants to skip unsupported devices, multiply values,
-# and output messages
-my $SMART_ATTR = {
-};
 
 # say 'no' for autoconf
 if ($ARGV[0] and $ARGV[0] eq 'autoconf') {
@@ -109,6 +176,9 @@ else {
 
 # fetch current S.M.A.R.T. attributes
 my $smart_attributes = load_smart_attributes(@devices);
+
+# filter/modify raw smart_attributes
+$smart_attributes = modify_smart_attributes($smart_attributes);
 
 # dummy output for test
 
@@ -225,6 +295,15 @@ sub parse_smart_data {
     }
 
     return $attributes;
+}
+
+
+# modify_smart_attributes
+#
+# filter and modify raw smart attributes using $SMART_ATTR_MODIFIER constants
+
+sub modify_smart_attributes {
+    my $original_attr = shift;
 }
 
 # print_config
