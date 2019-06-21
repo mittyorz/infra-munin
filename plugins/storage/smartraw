@@ -42,6 +42,14 @@ PLEXTOR PX-G128M6e also gives 177, 241 and 242
 Seagate Barracuda ST4000DM004-2CV104 also gives 241 and 242
 SanDisk SDCZ80-016G (SanDisk SSD U100 16GB) gives 241 and 242
 
+  5: Reallocated Sectors Count
+  9: Power-On Hours
+ 12: Power Cycle Count
+197: Current Pending Sector Count
+177: Wear Leveling Count
+241: Total LBAs Written
+242: Total LBAs Read
+
 =head2 Details of attributes
 
 PLEXTOR PX-G128M6e
@@ -52,6 +60,10 @@ PLEXTOR PX-G128M6e
 Seagate Barracuda ST4000DM004-2CV104 and SanDisk SDCZ80-016G
     241: Total_LBAs_Written  => RAW_VALUE * 512 (Bytes)
     242: Total_LBAs_Read => RAW_VALUE * 512 (Bytes)
+
+All Devices
+    9: Power-On Hours
+    convert to days ( 1/24 )
 
 =head1 MAGIC MARKERS
 
@@ -79,13 +91,6 @@ my $DEBUG = defined $ENV{debug} ? $ENV{debug} : 0;
 my $plugin_name = $Munin::Plugin::me;
 
 # hardcoded constants used to filter/modify raw attributes
-#   5: Reallocated Sectors Count
-#   9: Power-On Hours => /24 days
-#  12: Power Cycle Count
-# 197: Current Pending Sector Count
-# 177: Wear Leveling Count
-# 241: Total LBAs Written
-# 242: Total LBAs Read
 my $SMART_ATTR_MODIFIER = [
     {
         info => {
@@ -178,7 +183,9 @@ else {
 my $smart_attributes = load_smart_attributes(@devices);
 
 # filter/modify raw smart_attributes
-$smart_attributes = modify_smart_attributes($smart_attributes);
+if ($smart_attributes) {
+    $smart_attributes = modify_smart_attributes($smart_attributes);
+}
 
 # dummy output for test
 
@@ -303,7 +310,38 @@ sub parse_smart_data {
 # filter and modify raw smart attributes using $SMART_ATTR_MODIFIER constants
 
 sub modify_smart_attributes {
-    my $original_attr = shift;
+    my $devices = shift;
+
+    foreach my $devname (keys %$devices) {
+        my $device = $devices->{$devname};
+        foreach my $modifier (@$SMART_ATTR_MODIFIER) {
+            if ($modifier->{info}{serial_number}) {
+                # serial_number must be matched
+                if (! $device->{info}{serial_number} =~
+                    /^$modifier->{info}{serial_number}$/
+                ) { next; }
+            }
+
+            # device_model must be matched
+            if (! $device->{info}{device_model} =~
+                /^$modifier->{info}{device_model}$/
+            ) { next; }
+
+            foreach my $id (keys %{$device->{attr}}) {
+                if ($modifier->{attr}{$id}) {
+                    $device->{attr}{$id} *= $modifier->{attr}{$id};
+                }
+                else {
+                    delete $device->{attr}{$id};
+                }
+            }
+
+            # filter and modification must be done only once
+            last;
+        }
+    }
+
+    return $devices;
 }
 
 # print_config
