@@ -94,7 +94,7 @@ my $plugin_name = $Munin::Plugin::me;
 my $SMART_ATTR_MODIFIER = [
     {
         info => {
-            device_model => 'PLEXTOR PX\-G128M6e',
+            device_model => 'PLEXTOR PX-G128M6e',
         },
         attr => {
             5 => 1,
@@ -107,7 +107,7 @@ my $SMART_ATTR_MODIFIER = [
     },
     {
         info => {
-            device_model => 'ST4000DM004\-2CV104',
+            device_model => 'ST4000DM004-2CV104',
             serial_number => 'WFN0HKE5',
             # device on shizuku gives weird values on *Hours attributes
         },
@@ -121,7 +121,7 @@ my $SMART_ATTR_MODIFIER = [
     },
     {
         info => {
-            device_model => 'ST4000DM004\-2CV104',
+            device_model => 'ST4000DM004-2CV104',
         },
         attr => {
             5 => 1,
@@ -142,10 +142,7 @@ my $SMART_ATTR_MODIFIER = [
         },
     },
     {
-        info => {
-            device_model => '.+',
-            # most devices come here (default modifier)
-        },
+        # most devices come here (default modifier)
         attr => {
             5 => 1,
             9 => 1 / 24,    # hours to days
@@ -315,17 +312,23 @@ sub modify_smart_attributes {
     foreach my $devname (keys %$devices) {
         my $device = $devices->{$devname};
         foreach my $modifier (@$SMART_ATTR_MODIFIER) {
-            if ($modifier->{info}{serial_number}) {
-                # serial_number must be matched
-                if (! $device->{info}{serial_number} =~
-                    /\A$modifier->{info}{serial_number}\z/
+            if (exists $modifier->{info}) {
+                # check weather device is 'special device'
+
+                if (exists $modifier->{info}{serial_number}) {
+                    # serial_number must be matched
+                    if ($device->{info}{serial_number} ne
+                        $modifier->{info}{serial_number}
+                    ) { next; }
+                }
+
+                # device_model must be matched
+                if ($device->{info}{device_model} ne
+                    $modifier->{info}{device_model}
                 ) { next; }
             }
-
-            # device_model must be matched
-            if (! $device->{info}{device_model} =~
-                /\A$modifier->{info}{device_model}z/
-            ) { next; }
+            # else => device is normal device
+            # ... or both serial_number and device_model are matched
 
             foreach my $id (keys %{$device->{attr}}) {
                 if ($modifier->{attr}{$id}) {
