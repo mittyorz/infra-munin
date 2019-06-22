@@ -343,7 +343,7 @@ sub modify_smart_attributes {
             }
 
             # generate 'id' to be used for munin data
-            $device->{fieldname} = clean_fieldname($device->{info}{serial_number});
+            $device->{normalized_sn} = clean_fieldname($device->{info}{serial_number});
 
             # filter and modification must be done only once
             last;
