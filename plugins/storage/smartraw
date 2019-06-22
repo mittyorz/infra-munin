@@ -63,7 +63,7 @@ Seagate Barracuda ST4000DM004-2CV104 and SanDisk SDCZ80-016G
 
 All Devices
     9: Power-On Hours
-    convert to days ( 1/24 )
+    be converted to days ( 1/24 )
 
 =head1 MAGIC MARKERS
 
@@ -148,6 +148,9 @@ my $SMART_ATTR_MODIFIER = [
             9 => 1 / 24,    # hours to days
             12 => 1,
             197 => 1,
+            177 => undef,
+            241 => undef,
+            242 => undef,
         },
     },
 ];
@@ -338,6 +341,9 @@ sub modify_smart_attributes {
                     delete $device->{attr}{$id};
                 }
             }
+
+            # generate 'id' to be used for munin data
+            $device->{fieldname} = clean_fieldname($device->{info}{serial_number});
 
             # filter and modification must be done only once
             last;
