@@ -155,6 +155,31 @@ my $SMART_ATTR_MODIFIER = [
     },
 ];
 
+# hardcoded constants used to print config messages
+my $CONFIG_MESSAGE = {
+    5 => {
+        attribute_name => 'Reallocated Sectors Count',
+    },
+    9 => {
+        attribute_name => 'Power-On Hours [into days]',
+    },
+    12 => {
+        attribute_name => 'Power Cycle Count',
+    },
+    197 => {
+        attribute_name => 'Current Pending Sector Count',
+    },
+    177 => {
+        attribute_name => 'Wear Leveling Count',
+    },
+    241 => {
+        attribute_name => 'Total LBAs Written',
+    },
+    242 => {
+        attribute_name => 'Total LBAs Read',
+    },
+};
+
 if ($<) {
     croak "this plugin need 'root' privilege to run";
 }
@@ -358,7 +383,16 @@ sub modify_smart_attributes {
 # output config for root and deeeper graphs
 
 sub print_config {
+    my $smart_attributes = shift;
+
     # config for root graphs
+    print_root_config($smart_attributes);
+
+    # config for each device graph
+    foreach my $device (sort keys %$smart_attributes) {
+        print_device_config($device => $smart_attributes->{$device});
+    }
+
     print <<"EOF";
 multigraph ${plugin_name}_177
 graph_title Wear_Leveling_Count per device (177)
@@ -425,6 +459,32 @@ id242.type GAUGE
 id242.min 0
 
 EOF
+}
+
+# Print configration texts for the root gprah
+sub print_root_config {
+    my $smart_attributes = shift;
+
+    # fetch attribute lists sorted with numerical order
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
+        my $id_exists;
+        foreach my $device (keys %$smart_attributes) {
+            if (exists $smart_attributes->{$device}{attr}{$id}) {
+                $id_exists = 1;
+            }
+        }
+        if (! $id_exists) {
+            # no device has S.M.A.R.T. attribute of $id
+            next;
+        }
+        my $message = $CONFIG_MESSAGE->{$id};
+    }
+}
+
+# Print configration texts for each device gprah
+sub print_device_config {
+    my $device = shift;
+    my $dev_attr = shift;
 }
 
 sub print_graphs {
