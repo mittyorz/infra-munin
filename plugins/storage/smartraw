@@ -481,13 +481,9 @@ sub print_root_config {
 
     # fetch attribute lists sorted with numerical order
     foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
-        my $id_exists;
-        foreach my $device (keys %$smart_attributes) {
-            if (exists $smart_attributes->{$device}{attr}{$id}) {
-                $id_exists = 1;
-            }
-        }
-        if (! $id_exists) {
+        my @devices_have_id = map { $_ } grep { $smart_attributes->{$_}{attr}{$id} }
+            keys %$smart_attributes;
+        if (! @devices_have_id) {
             # no device has S.M.A.R.T. attribute of $id
             next;
         }
@@ -585,13 +581,9 @@ sub print_root_graph {
     my $smart_attributes = shift;
 
     foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
-        my $id_exists;
-        foreach my $device (keys %$smart_attributes) {
-            if (exists $smart_attributes->{$device}{attr}{$id}) {
-                $id_exists = 1;
-            }
-        }
-        if (! $id_exists) {
+        my @devices_have_id = map { $_ } grep { $smart_attributes->{$_}{attr}{$id} }
+            keys %$smart_attributes;
+        if (! @devices_have_id) {
             # no device has S.M.A.R.T. attribute of $id
             next;
         }
