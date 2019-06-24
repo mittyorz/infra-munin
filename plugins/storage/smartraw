@@ -505,7 +505,7 @@ EOF
             print <<"EOF";
 ${fieldname}.label $device
 ${fieldname}.type GAUGE
-${fieldname}.info $message->{attribute_name} (ID: $id) of $device
+${fieldname}.info $message->{attribute_name} (ID: $id) of $device in $message->{graph_vlabel}
 ${fieldname}.min 0
 EOF
         }
@@ -515,7 +515,28 @@ EOF
 # Print configration texts for each device gprah
 sub print_device_config {
     my $device = shift;
-    my $dev_attr = shift;
+    my $device_attributes = shift;
+
+    # fetch attribute lists sorted with numerical order
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
+        if (! exists $device_attributes->{attr}{$id}) {
+            # this device does not have $id attribute
+            next;
+        }
+        $message = $CONFIG_MESSAGE->{$id};
+        print <<"EOF";
+multigraph ${plugin_name}_${id}.$device_attributes->{normalized_sn}
+graph_title $message->{attribute_name} (ID: $id) for $device
+graph_args $message->{graph_args}
+graph_vlabel $message->{graph_vlabel}
+graph_category smart
+graph_info This graph shows the value of S.M.A.R.T. attribute $message->{attribute_name} (ID: $id) for $device
+${id}.label $message->{attribute_name}
+${id}.type GAUGE
+${id}.info $message->{attribute_name} (ID: $id) of $device in $message->{graph_vlabel}
+${id}.min 0
+EOF
+    }
 }
 
 sub print_graphs {
