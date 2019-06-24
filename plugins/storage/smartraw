@@ -159,24 +159,38 @@ my $SMART_ATTR_MODIFIER = [
 my $CONFIG_MESSAGE = {
     5 => {
         attribute_name => 'Reallocated Sectors Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
     },
     9 => {
         attribute_name => 'Power-On Hours [into days]',
+        graph_args => '--base 1000',
+        graph_vlabel => 'days',
     },
     12 => {
         attribute_name => 'Power Cycle Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
     },
     197 => {
         attribute_name => 'Current Pending Sector Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
     },
     177 => {
         attribute_name => 'Wear Leveling Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
     },
     241 => {
         attribute_name => 'Total LBAs Written',
+        graph_args => '--base 1024',
+        graph_vlabel => 'bytes',
     },
     242 => {
         attribute_name => 'Total LBAs Read',
+        graph_args => '--base 1024',
+        graph_vlabel => 'bytes',
     },
 };
 
@@ -478,6 +492,23 @@ sub print_root_config {
             next;
         }
         my $message = $CONFIG_MESSAGE->{$id};
+        print <<"EOF";
+multigraph ${plugin_name}_${id}
+graph_title $message->{attribute_name} (ID: $id) per device
+graph_args $message->{graph_args}
+graph_vlabel $message->{graph_vlabel}
+graph_category smart
+graph_info Current value of S.M.A.R.T. attribute $message->{attribute_name} (ID: $id)
+EOF
+        foreach my $device (sort keys %$smart_attributes) {
+            my $fieldname = "$smart_attributes->{$device}{normalized_sn}_$id";
+            print <<"EOF";
+${fieldname}.label $device
+${fieldname}.type GAUGE
+${fieldname}.info $message->{attribute_name} (ID: $id) of $device
+${fieldname}.min 0
+EOF
+        }
     }
 }
 
