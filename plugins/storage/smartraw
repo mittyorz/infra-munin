@@ -475,7 +475,7 @@ id242.min 0
 EOF
 }
 
-# Print configration texts for the root gprah
+# Print configration texts for the root graph
 sub print_root_config {
     my $smart_attributes = shift;
 
@@ -512,7 +512,7 @@ EOF
     }
 }
 
-# Print configration texts for each device gprah
+# Print configration texts for each device graph
 sub print_device_config {
     my $device = shift;
     my $device_attributes = shift;
@@ -539,8 +539,21 @@ EOF
     }
 }
 
+# print_graphs
+#
+# output graph data for root and each devices
+
 sub print_graphs {
+    my $smart_attributes = shift;
+
     # print root graphs
+    print_root_graph($smart_attributes);
+
+    # print each device graph
+    foreach my $device (sort keys %$smart_attributes) {
+        print_device_graph($smart_attributes->{$device});
+    }
+
     print <<"EOF";
 multigraph ${plugin_name}_177
 id177.value 168023
@@ -565,4 +578,43 @@ multigraph ${plugin_name}_242.sda
 id242.value 3149217660928
 
 EOF
+}
+
+# Print data for the root graph
+sub print_root_graph {
+    my $smart_attributes = shift;
+
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
+        my $id_exists;
+        foreach my $device (keys %$smart_attributes) {
+            if (exists $smart_attributes->{$device}{attr}{$id}) {
+                $id_exists = 1;
+            }
+        }
+        if (! $id_exists) {
+            # no device has S.M.A.R.T. attribute of $id
+            next;
+        }
+        print <<"EOF";
+multigraph ${plugin_name}_${id}
+EOF
+        foreach my $device (sort keys %$smart_attributes) {
+            my $fieldname = "$smart_attributes->{$device}{normalized_sn}_$id";
+        print <<"EOF";
+${fieldname}.value $smart_attributes->{$device}{attr}{$id}
+EOF
+        }
+    }
+}
+
+# Print data for each device graph
+sub print_device_graph {
+    my $device_attributes = shift;
+
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
+        print <<"EOF";
+multigraph ${plugin_name}_${id}.$device_attributes->{normalized_sn}
+$id.value $device_attributes->{attr}{$id}
+EOF
+    }
 }
