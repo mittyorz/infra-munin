@@ -406,73 +406,6 @@ sub print_config {
     foreach my $device (sort keys %$smart_attributes) {
         print_device_config($device => $smart_attributes->{$device});
     }
-
-    print <<"EOF";
-multigraph ${plugin_name}_177
-graph_title Wear_Leveling_Count per device (177)
-graph_args --base 1000
-graph_vlabel counts
-graph_info This graph shows the value of Wear_Leveling_Count S.M.A.R.T. attributes
-graph_category smart
-id177.label Wear_Leveling_Count
-id177.type GAUGE
-id177.min 0
-
-multigraph ${plugin_name}_241
-graph_title Total_LBAs_Written per device (241)
-graph_args --base 1024
-graph_vlabel bytes
-graph_info This graph shows the value of Total_LBAs_Written S.M.A.R.T. attributes
-graph_category smart
-id241.label Total_LBAs_Written
-id241.type GAUGE
-id241.min 0
-
-multigraph ${plugin_name}_242
-graph_title Total_LBAs_Read per device (242)
-graph_args --base 1024
-graph_vlabel bytes
-graph_info This graph shows the value of Total_LBAs_Read S.M.A.R.T. attributes
-graph_category smart
-id242.label Total_LBAs_Read
-id242.type GAUGE
-id242.min 0
-
-EOF
-
-    # config for deeeper graphs
-    print <<"EOF";
-multigraph ${plugin_name}_177.sda
-graph_title Wear_Leveling_Count (sda)
-graph_args --base 1000
-graph_vlabel counts
-graph_info This graph shows the value of Wear_Leveling_Count S.M.A.R.T. attributes
-graph_category smart
-id177.label Wear_Leveling_Count
-id177.type GAUGE
-id177.min 0
-
-multigraph ${plugin_name}_241.sda
-graph_title Total_LBAs_Written (sda)
-graph_args --base 1024
-graph_vlabel bytes
-graph_info This graph shows the value of Total_LBAs_Written S.M.A.R.T. attributes
-graph_category smart
-id241.label Total_LBAs_Written
-id241.type GAUGE
-id241.min 0
-
-multigraph ${plugin_name}_242.sda
-graph_title Total_LBAs_Read (sda)
-graph_args --base 1024
-graph_vlabel bytes
-graph_info This graph shows the value of Total_LBAs_Read S.M.A.R.T. attributes
-graph_category smart
-id242.label Total_LBAs_Read
-id242.type GAUGE
-id242.min 0
-
-EOF
 }
 
 # Print configration texts for the root graph
@@ -549,31 +482,6 @@ sub print_graphs {
     foreach my $device (sort keys %$smart_attributes) {
         print_device_graph($smart_attributes->{$device});
     }
-
-    print <<"EOF";
-multigraph ${plugin_name}_177
-id177.value 168023
-
-multigraph ${plugin_name}_241
-id241.value 8928633028608
-
-multigraph ${plugin_name}_242
-id242.value 3149217660928
-
-EOF
-
-    # print deeeper graphs
-    print <<"EOF";
-multigraph ${plugin_name}_177.sda
-id177.value 168023
-
-multigraph ${plugin_name}_241.sda
-id241.value 8928633028608
-
-multigraph ${plugin_name}_242.sda
-id242.value 3149217660928
-
-EOF
 }
 
 # Print data for the root graph
