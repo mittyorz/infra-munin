@@ -452,7 +452,7 @@ sub print_device_config {
             # this device does not have $id attribute
             next;
         }
-        $message = $CONFIG_MESSAGE->{$id};
+        my $message = $CONFIG_MESSAGE->{$id};
         print <<"EOF";
 multigraph ${plugin_name}_${id}.$device_attributes->{normalized_sn}
 graph_title $message->{attribute_name} (ID: $id) for $device
