@@ -499,6 +499,9 @@ sub print_root_graph {
 multigraph ${plugin_name}_${id}
 EOF
         foreach my $device (sort keys %$smart_attributes) {
+            if (! exists $smart_attributes->{$device}{attr}{$id}) {
+                next;
+            }
             my $fieldname = "$smart_attributes->{$device}{normalized_sn}_$id";
         print <<"EOF";
 ${fieldname}.value $smart_attributes->{$device}{attr}{$id}
@@ -512,6 +515,9 @@ sub print_device_graph {
     my $device_attributes = shift;
 
     foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
+        if (! exists $device_attributes->{attr}{$id}) {
+            next;
+        }
         print <<"EOF";
 multigraph ${plugin_name}_${id}.$device_attributes->{normalized_sn}
 $id.value $device_attributes->{attr}{$id}
