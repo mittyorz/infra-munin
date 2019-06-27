@@ -1,0 +1,529 @@
+#!/usr/bin/perl
+
+# smartraw - MMunin multigraph plugin to monitor raw S.M.A.R.T. attributes,
+# from storage devices with smartctl command
+#
+# Copyright (C) 2019 Ken-ichi Mito
+
+=head1 NAME
+
+smartraw - MMunin multigraph plugin to monitor raw S.M.A.R.T. attributes,
+from storage devices with smartctl command
+
+=head1 APPLICABLE SYSTEMS
+
+Linux system with smartmontools installed.
+
+=head1 CONFIGURATION
+
+This plugin needs root privilege to fetch S.M.A.R.T. attributes.
+
+    [smartraw]
+        user root
+        env.devices sda sdb
+
+smartctl: path to smartctl program (default: /usr/sbin/smartctl)
+devices: list of devices to monitor
+
+=head2 DEBUG
+
+This plugin does not use MUNIN_DEBUG environment variable,
+but for debugging usage, setting env.debug to 1 outputs more verbose messages to stderr.
+
+=head1 INTERPRETATION
+
+This plugin fetches specific S.M.A.R.T. attributes and make line graphs.
+Some attributes will be multiplied, because original values are a little confusing.
+
+=head2 Attributes
+
+Most normal devices give 5, 9, 12, 197
+PLEXTOR PX-G128M6e also gives 177, 241 and 242
+Seagate Barracuda ST4000DM004-2CV104 also gives 241 and 242
+SanDisk SDCZ80-016G (SanDisk SSD U100 16GB) gives 241 and 242
+
+  5: Reallocated Sectors Count
+  9: Power-On Hours
+ 12: Power Cycle Count
+197: Current Pending Sector Count
+177: Wear Leveling Count
+241: Total LBAs Written
+242: Total LBAs Read
+
+=head2 Details of attributes
+
+PLEXTOR PX-G128M6e
+    177: Wear_Leveling_Count => RAW_VALUE (count)
+    241: Total_LBAs_Written  => RAW_VALUE * 32 (MiB)
+    242: Total_LBAs_Read => RAW_VALUE * 32 (MiB)
+
+Seagate Barracuda ST4000DM004-2CV104 and SanDisk SDCZ80-016G
+    241: Total_LBAs_Written  => RAW_VALUE * 512 (Bytes)
+    242: Total_LBAs_Read => RAW_VALUE * 512 (Bytes)
+
+All Devices
+    9: Power-On Hours
+    be converted to days ( 1/24 )
+
+=head1 MAGIC MARKERS
+
+ #%# family=manual
+ #%# capabilities=multigraph
+
+=head1 AUTHOR
+
+Ken-ichi Mito
+
+=head1 LICENSE
+
+2-clause BSD License
+
+=cut
+
+use strict;
+use warnings;
+use Carp;
+use utf8;
+
+use Munin::Plugin;
+
+my $DEBUG = defined $ENV{debug} ? $ENV{debug} : 0;
+my $plugin_name = $Munin::Plugin::me;
+
+# hardcoded constants used to filter/modify raw attributes
+my $SMART_ATTR_MODIFIER = [
+    {
+        info => {
+            device_model => 'PLEXTOR PX-G128M6e',
+        },
+        attr => {
+            5 => 1,
+            9 => 1 / 24,    # hours to days
+            12 => 1,
+            177 => 1,
+            241 => 32 * 1024 * 1024,
+            242 => 32 * 1024 * 1024,
+        },
+    },
+    {
+        info => {
+            device_model => 'ST4000DM004-2CV104',
+            serial_number => 'WFN0HKE5',
+            # device on shizuku gives weird values on *Hours attributes
+        },
+        attr => {
+            5 => 1,
+            12 => 1,
+            197 => 1,
+            241 => 512,
+            242 => 512,
+        },
+    },
+    {
+        info => {
+            device_model => 'ST4000DM004-2CV104',
+        },
+        attr => {
+            5 => 1,
+            9 => 1 / 24,    # hours to days
+            12 => 1,
+            197 => 1,
+            241 => 512,
+            242 => 512,
+        },
+    },
+    {
+        info => {
+            device_model => 'SanDisk SSD U100 16GB',
+        },
+        attr => {
+            241 => 512,
+            242 => 512,
+        },
+    },
+    {
+        # most devices come here (default modifier)
+        attr => {
+            5 => 1,
+            9 => 1 / 24,    # hours to days
+            12 => 1,
+            197 => 1,
+            177 => undef,
+            241 => undef,
+            242 => undef,
+        },
+    },
+];
+
+# hardcoded constants used to print config messages
+my $CONFIG_MESSAGE = {
+    5 => {
+        attribute_name => 'Reallocated Sectors Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+    },
+    9 => {
+        attribute_name => 'Power-On Hours [into days]',
+        graph_args => '--base 1000',
+        graph_vlabel => 'days',
+    },
+    12 => {
+        attribute_name => 'Power Cycle Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+    },
+    197 => {
+        attribute_name => 'Current Pending Sector Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+    },
+    177 => {
+        attribute_name => 'Wear Leveling Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+    },
+    241 => {
+        attribute_name => 'Total LBAs Written',
+        graph_args => '--base 1024',
+        graph_vlabel => 'bytes',
+    },
+    242 => {
+        attribute_name => 'Total LBAs Read',
+        graph_args => '--base 1024',
+        graph_vlabel => 'bytes',
+    },
+};
+
+if ($<) {
+    croak "this plugin need 'root' privilege to run";
+}
+
+# check current environment supports multigraph plugins
+need_multigraph();
+
+# say 'no' for autoconf
+if ($ARGV[0] and $ARGV[0] eq 'autoconf') {
+    print "no (you should setup manually this plugin\n";
+    exit 0;
+}
+
+# list up block devices
+my @devices;
+if (exists $ENV{devices}) {
+    @devices = split(' ', $ENV{devices});
+}
+else {
+    opendir(DEV, '/dev/') or croak "Failed to open '/dev/' directory: $!";
+    @devices = grep {/\A(hd[a-z]|sd[a-z]|nvme[0-9]+n[0-9]+)\z/} readdir(DEV);
+    closedir(DEV);
+}
+
+# fetch current S.M.A.R.T. attributes
+my $smart_attributes = load_smart_attributes(@devices);
+
+# filter/modify raw smart_attributes
+if ($smart_attributes) {
+    $smart_attributes = modify_smart_attributes($smart_attributes);
+}
+
+# dummy output for test
+
+if ($ARGV[0] and $ARGV[0] eq 'config') {
+    print_config($smart_attributes);
+    exit 0;
+}
+
+print_graphs($smart_attributes);
+
+# end of plugin execution
+exit 0;
+
+
+# load_smart_attributes
+#
+# load current S.M.A.R.T. attributes by using smartctl command
+
+sub load_smart_attributes {
+    my @devices = @_;
+    my $smart_attributes;
+
+    foreach my $device (@devices) {
+        my $devicepath = '/dev/' . $device;
+        my $raw_smart_log = read_smart($devicepath);
+        
+        my $info = parse_smart_info($raw_smart_log);
+        my $attr = parse_smart_data($raw_smart_log);
+        if ($info and $attr) {
+            $smart_attributes->{$device} = {
+                info => $info,
+                attr => $attr,
+            }
+        }
+    }
+
+    return $smart_attributes;
+}
+
+# exec smartctl and read its output
+sub read_smart {
+    my $devicepath = shift;
+
+    my $command = exists $ENV{smartctl} ? $ENV{smartctl} : '/usr/sbin/smartctl';
+    open my $smartctl, '-|', $command, '-A -i', $devicepath
+        or croak "Failed to exec smartctl -A -i $devicepath: $!";
+
+    my @results = <$smartctl>;
+    chomp @results;
+    return \@results;
+}
+
+# parse INFORMATION SECTION
+sub parse_smart_info {
+    my $logs = shift;
+
+    my ($model, $serial);
+
+    my $inside_section = 0;
+    foreach my $line (@$logs) {
+        if (! $inside_section) {
+            #skip until '=== START OF INFORMATION SECTION ==='
+            if ($line =~ /START OF INFORMATION SECTION/) {
+                $inside_section = 1;
+            }
+            next;
+        }
+        else {
+            if ($line =~ /\ADevice Model:\s+(.+)/) {
+                $model = $1;
+            }
+            if ($line =~ /\ADevice:\s+(.+)/) {
+                $model = $1;
+            }
+            if ($line =~ /\ASerial Number:\s+(.+)/) {
+                $serial = $1;
+            }
+        }
+    }
+
+    if ($model and $serial) {
+        return {
+            device_model => $model,
+            serial_number => $serial,
+        }
+    }
+    else {
+        return undef;
+    }
+}
+
+# parse SMART DATA SECTION
+sub parse_smart_data {
+    my $logs = shift;
+
+    my $attributes;
+
+    my $inside_section = 0;
+    foreach my $line (@$logs) {
+        if (! $inside_section) {
+            #skip until '=== START OF READ SMART DATA SECTION ==='
+            if ($line =~ /START OF READ SMART DATA SECTION/) {
+                $inside_section = 1;
+            }
+            next;
+        }
+        else {
+            if ($line =~ /\A\s*\d+\s+(\S+\s+){8}/) {
+                $line =~ s/\A\s+|\s+\z//g;    # trim leading and trailing white spaces
+                my @elem = split(/\s+/, $line);
+                $attributes->{$elem[0]} = $elem[9];
+            }
+        }
+    }
+
+    return $attributes;
+}
+
+
+# modify_smart_attributes
+#
+# filter and modify raw smart attributes using $SMART_ATTR_MODIFIER constants
+
+sub modify_smart_attributes {
+    my $devices = shift;
+
+    foreach my $devname (keys %$devices) {
+        my $device = $devices->{$devname};
+        foreach my $modifier (@$SMART_ATTR_MODIFIER) {
+            if (exists $modifier->{info}) {
+                # check weather device is 'special device'
+
+                if (exists $modifier->{info}{serial_number}) {
+                    # serial_number must be matched
+                    if ($device->{info}{serial_number} ne
+                        $modifier->{info}{serial_number}
+                    ) { next; }
+                }
+
+                # device_model must be matched
+                if ($device->{info}{device_model} ne
+                    $modifier->{info}{device_model}
+                ) { next; }
+            }
+            # else => device is normal device
+            # ... or both serial_number and device_model are matched
+
+            foreach my $id (keys %{$device->{attr}}) {
+                if ($modifier->{attr}{$id}) {
+                    $device->{attr}{$id} *= $modifier->{attr}{$id};
+                }
+                else {
+                    delete $device->{attr}{$id};
+                }
+            }
+
+            # generate 'id' to be used for munin data
+            $device->{normalized_sn} = clean_fieldname($device->{info}{serial_number});
+
+            # filter and modification must be done only once
+            last;
+        }
+    }
+
+    return $devices;
+}
+
+# print_config
+#
+# output config for root and deeeper graphs
+
+sub print_config {
+    my $smart_attributes = shift;
+
+    # config for root graphs
+    print_root_config($smart_attributes);
+
+    # config for each device graph
+    foreach my $device (sort keys %$smart_attributes) {
+        print_device_config($device => $smart_attributes->{$device});
+    }
+}
+
+# Print configration texts for the root graph
+sub print_root_config {
+    my $smart_attributes = shift;
+
+    # fetch attribute lists sorted with numerical order
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
+        my @devices_have_id = map { $_ } grep { $smart_attributes->{$_}{attr}{$id} }
+            keys %$smart_attributes;
+        if (! @devices_have_id) {
+            # no device has S.M.A.R.T. attribute of $id
+            next;
+        }
+        my $message = $CONFIG_MESSAGE->{$id};
+        print <<"EOF";
+multigraph ${plugin_name}_${id}
+graph_title $message->{attribute_name} (ID: $id) per device
+graph_args $message->{graph_args}
+graph_vlabel $message->{graph_vlabel}
+graph_category smart
+graph_info Current value of S.M.A.R.T. attribute $message->{attribute_name} (ID: $id)
+EOF
+        foreach my $device (sort keys %$smart_attributes) {
+            if (! exists $smart_attributes->{$device}{attr}{$id}) {
+                next;
+            }
+            my $fieldname = "$smart_attributes->{$device}{normalized_sn}_$id";
+            print <<"EOF";
+${fieldname}.label $device
+${fieldname}.type GAUGE
+${fieldname}.info $message->{attribute_name} (ID: $id) of $device in $message->{graph_vlabel}
+${fieldname}.min 0
+EOF
+        }
+    }
+}
+
+# Print configration texts for each device graph
+sub print_device_config {
+    my $device = shift;
+    my $device_attributes = shift;
+
+    # fetch attribute lists sorted with numerical order
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
+        if (! exists $device_attributes->{attr}{$id}) {
+            # this device does not have $id attribute
+            next;
+        }
+        my $message = $CONFIG_MESSAGE->{$id};
+        print <<"EOF";
+multigraph ${plugin_name}_${id}.$device_attributes->{normalized_sn}
+graph_title $message->{attribute_name} (ID: $id) for $device
+graph_args $message->{graph_args}
+graph_vlabel $message->{graph_vlabel}
+graph_category smart
+graph_info This graph shows the value of S.M.A.R.T. attribute $message->{attribute_name} (ID: $id) for $device
+${id}.label $message->{attribute_name}
+${id}.type GAUGE
+${id}.info $message->{attribute_name} (ID: $id) of $device in $message->{graph_vlabel}
+${id}.min 0
+EOF
+    }
+}
+
+# print_graphs
+#
+# output graph data for root and each devices
+
+sub print_graphs {
+    my $smart_attributes = shift;
+
+    # print root graphs
+    print_root_graph($smart_attributes);
+
+    # print each device graph
+    foreach my $device (sort keys %$smart_attributes) {
+        print_device_graph($smart_attributes->{$device});
+    }
+}
+
+# Print data for the root graph
+sub print_root_graph {
+    my $smart_attributes = shift;
+
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
+        my @devices_have_id = map { $_ } grep { $smart_attributes->{$_}{attr}{$id} }
+            keys %$smart_attributes;
+        if (! @devices_have_id) {
+            # no device has S.M.A.R.T. attribute of $id
+            next;
+        }
+        print <<"EOF";
+multigraph ${plugin_name}_${id}
+EOF
+        foreach my $device (sort keys %$smart_attributes) {
+            if (! exists $smart_attributes->{$device}{attr}{$id}) {
+                next;
+            }
+            my $fieldname = "$smart_attributes->{$device}{normalized_sn}_$id";
+        print <<"EOF";
+${fieldname}.value $smart_attributes->{$device}{attr}{$id}
+EOF
+        }
+    }
+}
+
+# Print data for each device graph
+sub print_device_graph {
+    my $device_attributes = shift;
+
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{attr}}) {
+        if (! exists $device_attributes->{attr}{$id}) {
+            next;
+        }
+        print <<"EOF";
+multigraph ${plugin_name}_${id}.$device_attributes->{normalized_sn}
+$id.value $device_attributes->{attr}{$id}
+EOF
+    }
+}
