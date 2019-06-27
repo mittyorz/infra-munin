@@ -430,6 +430,9 @@ graph_category smart
 graph_info Current value of S.M.A.R.T. attribute $message->{attribute_name} (ID: $id)
 EOF
         foreach my $device (sort keys %$smart_attributes) {
+            if (! exists $smart_attributes->{$device}{attr}{$id}) {
+                next;
+            }
             my $fieldname = "$smart_attributes->{$device}{normalized_sn}_$id";
             print <<"EOF";
 ${fieldname}.label $device
