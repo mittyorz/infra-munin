@@ -463,7 +463,7 @@ graph_title $message->{attribute_name} (ID: $id) for $device
 graph_args $message->{graph_args}
 graph_vlabel $message->{graph_vlabel}
 graph_category smart
-graph_info This graph shows the value of S.M.A.R.T. attribute $message->{attribute_name} (ID: $id) for $device
+graph_info This graph shows the value of S.M.A.R.T. attribute $message->{attribute_name} (ID: $id) for $device (Model: $device_attributes->{info}{device_model}, S/N: $device_attributes->{info}{serial_number}).
 ${fieldname}.label $message->{attribute_name}
 ${fieldname}.type GAUGE
 ${fieldname}.info $message->{attribute_name} (ID: $id) of $device in $message->{graph_vlabel}
