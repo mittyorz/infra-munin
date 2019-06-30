@@ -423,7 +423,7 @@ sub print_root_config {
         my $message = $CONFIG_MESSAGE->{$id};
         print <<"EOF";
 multigraph ${plugin_name}_id${id}
-graph_title $message->{'attribute_name'} (ID: $id) per device
+graph_title $id: $message->{'attribute_name'} per device
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
@@ -459,7 +459,7 @@ sub print_device_config {
         my $fieldname = "id$id";
         print <<"EOF";
 multigraph ${plugin_name}_id${id}.$device_attributes->{'normalized_sn'}
-graph_title $message->{'attribute_name'} (ID: $id) for $device
+graph_title $id: $message->{'attribute_name'} for $device
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
