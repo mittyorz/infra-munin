@@ -269,7 +269,7 @@ sub read_smart {
     my $devicepath = shift;
 
     my $command = exists $ENV{'smartctl'} ? $ENV{'smartctl'} : '/usr/sbin/smartctl';
-    open my $smartctl, '-|', $command, '-A -i', $devicepath
+    open my $smartctl, '-|', $command, '-A', '-i', $devicepath
         or croak "Failed to exec smartctl -A -i $devicepath: $!";
 
     my @results = <$smartctl>;
