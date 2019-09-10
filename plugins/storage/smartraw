@@ -49,6 +49,7 @@ SanDisk SDCZ80-016G (SanDisk SSD U100 16GB) gives 241 and 242
 177: Wear Leveling Count
 241: Total LBAs Written
 242: Total LBAs Read
+249: NAND Writes (1GiB)
 
 =head2 Details of attributes
 
@@ -57,9 +58,12 @@ PLEXTOR PX-G128M6e
     241: Total_LBAs_Written  => RAW_VALUE * 32 (MiB)
     242: Total_LBAs_Read => RAW_VALUE * 32 (MiB)
 
-Seagate Barracuda ST4000DM004-2CV104 and SanDisk SDCZ80-016G
+Seagate Barracuda ST4000DM004-2CV104, SanDisk SDCZ80-016G and INTEL SSDSC2KW512G8
     241: Total_LBAs_Written  => RAW_VALUE * 512 (Bytes)
     242: Total_LBAs_Read => RAW_VALUE * 512 (Bytes)
+
+INTEL SSDSC2KW512G8
+    249: NAND Writes (1GiB) => RAW_VALUE (GiB)
 
 All Devices
     9: Power-On Hours
@@ -145,7 +149,21 @@ my $SMART_ATTR_MODIFIER = [
         },
     },
     {
+        info => {
+            device_model => 'INTEL SSDSC2KW512G8',
+        },
+        attr => {
+            5 => 1,
+            9 => 1 / 24,    # hours to days
+            12 => 1,
+            241 => 32 * 1024 * 1024,
+            242 => 32 * 1024 * 1024,
+            249 => 1024 * 1024 * 1024,
+        },
+    },
+    {
         # most devices come here (default modifier)
+        # all S.M.A.R.T. IDs used in above devices need to be listed below
         attr => {
             5 => 1,
             9 => 1 / 24,    # hours to days
@@ -154,6 +172,7 @@ my $SMART_ATTR_MODIFIER = [
             177 => undef,
             241 => undef,
             242 => undef,
+            249 => undef,
         },
     },
 ];
@@ -192,6 +211,11 @@ my $CONFIG_MESSAGE = {
     },
     242 => {
         attribute_name => 'Total LBAs Read',
+        graph_args => '--base 1024',
+        graph_vlabel => 'bytes',
+    },
+    249 => {
+        attribute_name => 'NAND Writes',
         graph_args => '--base 1024',
         graph_vlabel => 'bytes',
     },
