@@ -163,6 +163,7 @@ my $SMART_ATTR_MODIFIER = [
     },
     {
         # most devices come here (default modifier)
+        # all S.M.A.R.T. IDs used in above devices need to be listed below
         attr => {
             5 => 1,
             9 => 1 / 24,    # hours to days
@@ -171,6 +172,7 @@ my $SMART_ATTR_MODIFIER = [
             177 => undef,
             241 => undef,
             242 => undef,
+            249 => undef,
         },
     },
 ];
