@@ -366,7 +366,7 @@ sub parse_smart_data {
             if ($line =~ /\A\s*\d+\s+(\S+\s+){8}/) {
                 $line =~ s/\A\s+|\s+\z//g;    # trim leading and trailing white spaces
                 my @elem = split(/\s+/, $line);
-                $data->{$elem[0]} = $elem[9];
+                $data->{'id' . $elem[0]} = $elem[9];
             }
         }
     }
@@ -444,7 +444,7 @@ sub print_root_config {
     my $device_values = shift;
 
     # fetch value lists sorted with numerical order
-    foreach my $index (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+    foreach my $index (sort keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
         my @devices_have_value = map { $_ } grep { exists $device_values->{$_}{'value'}{$index} }
             keys %$device_values;
         if (! @devices_have_value) {
@@ -481,7 +481,7 @@ sub print_device_config {
     my $device_values = shift;
 
     # fetch value lists sorted with numerical order
-    foreach my $index (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+    foreach my $index (sort keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
         if (! exists $device_values->{'value'}{$index}) {
             # this device does not have $index value
             next;
@@ -523,7 +523,7 @@ sub print_graphs {
 sub print_root_graph {
     my $device_values = shift;
 
-    foreach my $index (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+    foreach my $index (sort keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
         my @devices_have_value = map { $_ } grep { exists $device_values->{$_}{'value'}{$index} }
             keys %$device_values;
         if (! @devices_have_value) {
@@ -549,7 +549,7 @@ EOF
 sub print_device_graph {
     my $device_values = shift;
 
-    foreach my $index (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+    foreach my $index (sort keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
         if (! exists $device_values->{'value'}{$index}) {
             next;
         }
