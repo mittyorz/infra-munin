@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 
-# smartraw - MMunin multigraph plugin to monitor raw S.M.A.R.T. attributes,
+# smartraw - MMunin multigraph plugin to monitor raw S.M.A.R.T. values,
 # from storage devices with smartctl command
 #
 # Copyright (C) 2019 Ken-ichi Mito
 
 =head1 NAME
 
-smartraw - MMunin multigraph plugin to monitor raw S.M.A.R.T. attributes,
+smartraw - MMunin multigraph plugin to monitor raw S.M.A.R.T. values,
 from storage devices with smartctl command
 
 =head1 APPLICABLE SYSTEMS
@@ -16,7 +16,7 @@ Linux system with smartmontools installed.
 
 =head1 CONFIGURATION
 
-This plugin needs root privilege to fetch S.M.A.R.T. attributes.
+This plugin needs root privilege to fetch S.M.A.R.T. values.
 
     [smartraw]
         user root
@@ -32,8 +32,12 @@ but for debugging usage, setting env.debug to 1 outputs more verbose messages to
 
 =head1 INTERPRETATION
 
-This plugin fetches specific S.M.A.R.T. attributes and make line graphs.
-Some attributes will be multiplied, because original values are a little confusing.
+This plugin fetches specific S.M.A.R.T. values and make line graphs.
+Some values will be multiplied, because original values are a little confusing.
+
+=head1 non NVMe devices
+
+This plugin uses smartctl (smartmontools) for non NVMe devices.
 
 =head2 Attributes
 
@@ -94,8 +98,8 @@ use Munin::Plugin;
 my $DEBUG = defined $ENV{'debug'} ? $ENV{'debug'} : 0;
 my $plugin_name = $Munin::Plugin::me;
 
-# hardcoded constants used to filter/modify raw attributes
-my $SMART_ATTR_MODIFIER = [
+# hardcoded constants used to filter/modify raw values
+my $SMART_VALUE_MODIFIER = [
     {
         info => {
             device_model => 'PLEXTOR PX-G128M6e',
@@ -246,33 +250,33 @@ else {
 }
 
 # fetch current S.M.A.R.T. attributes
-my $smart_attributes = load_smart_attributes(@devices);
+my $device_values = load_device_values(@devices);
 
-# filter/modify raw smart_attributes
-if ($smart_attributes) {
-    $smart_attributes = modify_smart_attributes($smart_attributes);
+# filter/modify raw device_values
+if ($device_values) {
+    $device_values = modify_smart_values($device_values);
 }
 
 # dummy output for test
 
 if ($ARGV[0] and $ARGV[0] eq 'config') {
-    print_config($smart_attributes);
+    print_config($device_values);
     exit 0;
 }
 
-print_graphs($smart_attributes);
+print_graphs($device_values);
 
 # end of plugin execution
 exit 0;
 
 
-# load_smart_attributes
+# load_device_values
 #
 # load current S.M.A.R.T. attributes by using smartctl command
 
-sub load_smart_attributes {
+sub load_device_values {
     my @devices = @_;
-    my $smart_attributes;
+    my $device_values;
 
     foreach my $device (@devices) {
         my $devicepath = '/dev/' . $device;
@@ -281,14 +285,14 @@ sub load_smart_attributes {
         my $info = parse_smart_info($raw_smart_log);
         my $attr = parse_smart_data($raw_smart_log);
         if ($info and $attr) {
-            $smart_attributes->{$device} = {
+            $device_values->{$device} = {
                 info => $info,
                 attr => $attr,
             }
         }
     }
 
-    return $smart_attributes;
+    return $device_values;
 }
 
 # exec smartctl and read its output
@@ -371,16 +375,16 @@ sub parse_smart_data {
 }
 
 
-# modify_smart_attributes
+# modify_smart_values
 #
-# filter and modify raw smart attributes using $SMART_ATTR_MODIFIER constants
+# filter and modify raw smart attributes using $SMART_VALUE_MODIFIER constants
 
-sub modify_smart_attributes {
+sub modify_smart_values {
     my $devices = shift;
 
     foreach my $devname (keys %$devices) {
         my $device = $devices->{$devname};
-        foreach my $modifier (@$SMART_ATTR_MODIFIER) {
+        foreach my $modifier (@$SMART_VALUE_MODIFIER) {
             if (exists $modifier->{'info'}) {
                 # check weather device is 'special device'
 
@@ -424,25 +428,25 @@ sub modify_smart_attributes {
 # output config for root and deeeper graphs
 
 sub print_config {
-    my $smart_attributes = shift;
+    my $device_values = shift;
 
     # config for root graphs
-    print_root_config($smart_attributes);
+    print_root_config($device_values);
 
     # config for each device graph
-    foreach my $device (sort keys %$smart_attributes) {
-        print_device_config($device => $smart_attributes->{$device});
+    foreach my $device (sort keys %$device_values) {
+        print_device_config($device => $device_values->{$device});
     }
 }
 
 # Print configration texts for the root graph
 sub print_root_config {
-    my $smart_attributes = shift;
+    my $device_values = shift;
 
     # fetch attribute lists sorted with numerical order
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{'attr'}}) {
-        my @devices_have_id = map { $_ } grep { exists $smart_attributes->{$_}{'attr'}{$id} }
-            keys %$smart_attributes;
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'attr'}}) {
+        my @devices_have_id = map { $_ } grep { exists $device_values->{$_}{'attr'}{$id} }
+            keys %$device_values;
         if (! @devices_have_id) {
             # no device has S.M.A.R.T. attribute of $id
             next;
@@ -456,11 +460,11 @@ graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
 graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'attribute_name'} (ID: $id) for each devices.
 EOF
-        foreach my $device (sort keys %$smart_attributes) {
-            if (! exists $smart_attributes->{$device}{'attr'}{$id}) {
+        foreach my $device (sort keys %$device_values) {
+            if (! exists $device_values->{$device}{'attr'}{$id}) {
                 next;
             }
-            my $fieldname = "$smart_attributes->{$device}{'normalized_sn'}_id$id";
+            my $fieldname = "$device_values->{$device}{'normalized_sn'}_id$id";
             print <<"EOF";
 ${fieldname}.label $device
 ${fieldname}.type GAUGE
@@ -477,7 +481,7 @@ sub print_device_config {
     my $device_attributes = shift;
 
     # fetch attribute lists sorted with numerical order
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{'attr'}}) {
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'attr'}}) {
         if (! exists $device_attributes->{'attr'}{$id}) {
             # this device does not have $id attribute
             next;
@@ -504,24 +508,24 @@ EOF
 # output graph data for root and each devices
 
 sub print_graphs {
-    my $smart_attributes = shift;
+    my $device_values = shift;
 
     # print root graphs
-    print_root_graph($smart_attributes);
+    print_root_graph($device_values);
 
     # print each device graph
-    foreach my $device (sort keys %$smart_attributes) {
-        print_device_graph($smart_attributes->{$device});
+    foreach my $device (sort keys %$device_values) {
+        print_device_graph($device_values->{$device});
     }
 }
 
 # Print data for the root graph
 sub print_root_graph {
-    my $smart_attributes = shift;
+    my $device_values = shift;
 
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{'attr'}}) {
-        my @devices_have_id = map { $_ } grep { exists $smart_attributes->{$_}{'attr'}{$id} }
-            keys %$smart_attributes;
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'attr'}}) {
+        my @devices_have_id = map { $_ } grep { exists $device_values->{$_}{'attr'}{$id} }
+            keys %$device_values;
         if (! @devices_have_id) {
             # no device has S.M.A.R.T. attribute of $id
             next;
@@ -529,13 +533,13 @@ sub print_root_graph {
         print <<"EOF";
 multigraph ${plugin_name}_id${id}
 EOF
-        foreach my $device (sort keys %$smart_attributes) {
-            if (! exists $smart_attributes->{$device}{'attr'}{$id}) {
+        foreach my $device (sort keys %$device_values) {
+            if (! exists $device_values->{$device}{'attr'}{$id}) {
                 next;
             }
-            my $fieldname = "$smart_attributes->{$device}{'normalized_sn'}_id$id";
+            my $fieldname = "$device_values->{$device}{'normalized_sn'}_id$id";
         print <<"EOF";
-${fieldname}.value $smart_attributes->{$device}{'attr'}{$id}
+${fieldname}.value $device_values->{$device}{'attr'}{$id}
 EOF
         }
     }
@@ -545,7 +549,7 @@ EOF
 sub print_device_graph {
     my $device_attributes = shift;
 
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_ATTR_MODIFIER->[-1]{'attr'}}) {
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'attr'}}) {
         if (! exists $device_attributes->{'attr'}{$id}) {
             next;
         }
