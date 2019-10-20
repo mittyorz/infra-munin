@@ -104,7 +104,7 @@ my $SMART_VALUE_MODIFIER = [
         info => {
             device_model => 'PLEXTOR PX-G128M6e',
         },
-        attr => {
+        value => {
             5 => 1,
             9 => 1 / 24,    # hours to days
             12 => 1,
@@ -119,7 +119,7 @@ my $SMART_VALUE_MODIFIER = [
             serial_number => 'WFN0HKE5',
             # device on shizuku gives weird values on *Hours attributes
         },
-        attr => {
+        value => {
             5 => 1,
             12 => 1,
             197 => 1,
@@ -131,7 +131,7 @@ my $SMART_VALUE_MODIFIER = [
         info => {
             device_model => 'ST4000DM004-2CV104',
         },
-        attr => {
+        value => {
             5 => 1,
             9 => 1 / 24,    # hours to days
             12 => 1,
@@ -144,7 +144,7 @@ my $SMART_VALUE_MODIFIER = [
         info => {
             device_model => 'SanDisk SSD U100 16GB',
         },
-        attr => {
+        value => {
             5 => 1,
             9 => 1 / 24,    # hours to days
             12 => 1,
@@ -156,7 +156,7 @@ my $SMART_VALUE_MODIFIER = [
         info => {
             device_model => 'INTEL SSDSC2KW512G8',
         },
-        attr => {
+        value => {
             5 => 1,
             9 => 1 / 24,    # hours to days
             12 => 1,
@@ -168,7 +168,7 @@ my $SMART_VALUE_MODIFIER = [
     {
         # most devices come here (default modifier)
         # all S.M.A.R.T. IDs used in above devices need to be listed below
-        attr => {
+        value => {
             5 => 1,
             9 => 1 / 24,    # hours to days
             12 => 1,
@@ -283,11 +283,11 @@ sub load_device_values {
         my $raw_smart_log = read_smart($devicepath);
         
         my $info = parse_smart_info($raw_smart_log);
-        my $attr = parse_smart_data($raw_smart_log);
-        if ($info and $attr) {
+        my $value = parse_smart_data($raw_smart_log);
+        if ($info and $value) {
             $device_values->{$device} = {
                 info => $info,
-                attr => $attr,
+                value => $value,
             }
         }
     }
@@ -403,12 +403,12 @@ sub modify_smart_values {
             # else => device is normal device
             # ... or both serial_number and device_model are matched
 
-            foreach my $id (keys %{$device->{'attr'}}) {
-                if ($modifier->{'attr'}{$id}) {
-                    $device->{'attr'}{$id} *= $modifier->{'attr'}{$id};
+            foreach my $id (keys %{$device->{'value'}}) {
+                if ($modifier->{'value'}{$id}) {
+                    $device->{'value'}{$id} *= $modifier->{'value'}{$id};
                 }
                 else {
-                    delete $device->{'attr'}{$id};
+                    delete $device->{'value'}{$id};
                 }
             }
 
@@ -444,8 +444,8 @@ sub print_root_config {
     my $device_values = shift;
 
     # fetch attribute lists sorted with numerical order
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'attr'}}) {
-        my @devices_have_id = map { $_ } grep { exists $device_values->{$_}{'attr'}{$id} }
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+        my @devices_have_id = map { $_ } grep { exists $device_values->{$_}{'value'}{$id} }
             keys %$device_values;
         if (! @devices_have_id) {
             # no device has S.M.A.R.T. attribute of $id
@@ -461,7 +461,7 @@ graph_category smart
 graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'attribute_name'} (ID: $id) for each devices.
 EOF
         foreach my $device (sort keys %$device_values) {
-            if (! exists $device_values->{$device}{'attr'}{$id}) {
+            if (! exists $device_values->{$device}{'value'}{$id}) {
                 next;
             }
             my $fieldname = "$device_values->{$device}{'normalized_sn'}_id$id";
@@ -481,8 +481,8 @@ sub print_device_config {
     my $device_attributes = shift;
 
     # fetch attribute lists sorted with numerical order
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'attr'}}) {
-        if (! exists $device_attributes->{'attr'}{$id}) {
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+        if (! exists $device_attributes->{'value'}{$id}) {
             # this device does not have $id attribute
             next;
         }
@@ -523,8 +523,8 @@ sub print_graphs {
 sub print_root_graph {
     my $device_values = shift;
 
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'attr'}}) {
-        my @devices_have_id = map { $_ } grep { exists $device_values->{$_}{'attr'}{$id} }
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+        my @devices_have_id = map { $_ } grep { exists $device_values->{$_}{'value'}{$id} }
             keys %$device_values;
         if (! @devices_have_id) {
             # no device has S.M.A.R.T. attribute of $id
@@ -534,12 +534,12 @@ sub print_root_graph {
 multigraph ${plugin_name}_id${id}
 EOF
         foreach my $device (sort keys %$device_values) {
-            if (! exists $device_values->{$device}{'attr'}{$id}) {
+            if (! exists $device_values->{$device}{'value'}{$id}) {
                 next;
             }
             my $fieldname = "$device_values->{$device}{'normalized_sn'}_id$id";
         print <<"EOF";
-${fieldname}.value $device_values->{$device}{'attr'}{$id}
+${fieldname}.value $device_values->{$device}{'value'}{$id}
 EOF
         }
     }
@@ -549,14 +549,14 @@ EOF
 sub print_device_graph {
     my $device_attributes = shift;
 
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'attr'}}) {
-        if (! exists $device_attributes->{'attr'}{$id}) {
+    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+        if (! exists $device_attributes->{'value'}{$id}) {
             next;
         }
         my $fieldname = "id$id";
         print <<"EOF";
 multigraph ${plugin_name}_id${id}.$device_attributes->{'normalized_sn'}
-${fieldname}.value $device_attributes->{'attr'}{$id}
+${fieldname}.value $device_attributes->{'value'}{$id}
 EOF
     }
 }
