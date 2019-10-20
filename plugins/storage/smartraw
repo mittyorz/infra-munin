@@ -41,24 +41,29 @@ This plugin uses smartctl (smartmontools) for non NVMe devices.
 
 =head2 Attributes
 
-Most normal devices give 5, 9, 12, 197
+Most normal devices give 5, 9, 12, 192, 196, 197, 198
 PLEXTOR PX-G128M6e also gives 177, 241 and 242
 Seagate Barracuda ST4000DM004-2CV104 also gives 241 and 242
 SanDisk SDCZ80-016G (SanDisk SSD U100 16GB) gives 241 and 242
+INTEL SSDSC2KW512G8 gives 241, 242 and 249
 
   5: Reallocated Sectors Count
   9: Power-On Hours
  12: Power Cycle Count
+192: Power-off Retract Count
+196: Reallocation Event Count
 197: Current Pending Sector Count
-177: Wear Leveling Count
+198: Offline Uncorrectable Sector Count
+173: SSD Wear Leveling Count
+174: Unexpected power loss count
+177: Wear Range Delta
 241: Total LBAs Written
 242: Total LBAs Read
 249: NAND Writes (1GiB)
 
-=head2 Details of attributes
+=head2 Modifying value of attributes
 
 PLEXTOR PX-G128M6e
-    177: Wear_Leveling_Count => RAW_VALUE (count)
     241: Total_LBAs_Written  => RAW_VALUE * 32 (MiB)
     242: Total_LBAs_Read => RAW_VALUE * 32 (MiB)
 
@@ -70,8 +75,7 @@ INTEL SSDSC2KW512G8
     249: NAND Writes (1GiB) => RAW_VALUE (GiB)
 
 All Devices
-    9: Power-On Hours
-    be converted to days ( 1/24 )
+    convert 9: Power-On Hours to days ( 1/24 )
 
 =head1 MAGIC MARKERS
 
