@@ -184,42 +184,42 @@ my $SMART_VALUE_MODIFIER = [
 # hardcoded constants used to print config messages
 my $CONFIG_MESSAGE = {
     5 => {
-        attribute_name => 'Reallocated Sectors Count',
+        title_of_value => 'Reallocated Sectors Count',
         graph_args => '--base 1000',
         graph_vlabel => 'counts',
     },
     9 => {
-        attribute_name => 'Power-On Hours [into days]',
+        title_of_value => 'Power-On Hours [into days]',
         graph_args => '--base 1000',
         graph_vlabel => 'days',
     },
     12 => {
-        attribute_name => 'Power Cycle Count',
+        title_of_value => 'Power Cycle Count',
         graph_args => '--base 1000',
         graph_vlabel => 'counts',
     },
     197 => {
-        attribute_name => 'Current Pending Sector Count',
+        title_of_value => 'Current Pending Sector Count',
         graph_args => '--base 1000',
         graph_vlabel => 'counts',
     },
     177 => {
-        attribute_name => 'Wear Leveling Count',
+        title_of_value => 'Wear Leveling Count',
         graph_args => '--base 1000',
         graph_vlabel => 'counts',
     },
     241 => {
-        attribute_name => 'Total LBAs Written',
+        title_of_value => 'Total LBAs Written',
         graph_args => '--base 1024',
         graph_vlabel => 'bytes',
     },
     242 => {
-        attribute_name => 'Total LBAs Read',
+        title_of_value => 'Total LBAs Read',
         graph_args => '--base 1024',
         graph_vlabel => 'bytes',
     },
     249 => {
-        attribute_name => 'NAND Writes',
+        title_of_value => 'NAND Writes',
         graph_args => '--base 1024',
         graph_vlabel => 'bytes',
     },
@@ -249,7 +249,7 @@ else {
     closedir(DEV);
 }
 
-# fetch current S.M.A.R.T. attributes
+# fetch current S.M.A.R.T. values
 my $device_values = load_device_values(@devices);
 
 # filter/modify raw device_values
@@ -272,7 +272,7 @@ exit 0;
 
 # load_device_values
 #
-# load current S.M.A.R.T. attributes by using smartctl command
+# load current S.M.A.R.T. values by using smartctl command
 
 sub load_device_values {
     my @devices = @_;
@@ -351,7 +351,7 @@ sub parse_smart_info {
 sub parse_smart_data {
     my $logs = shift;
 
-    my $attributes;
+    my $data;
 
     my $inside_section = 0;
     foreach my $line (@$logs) {
@@ -366,18 +366,18 @@ sub parse_smart_data {
             if ($line =~ /\A\s*\d+\s+(\S+\s+){8}/) {
                 $line =~ s/\A\s+|\s+\z//g;    # trim leading and trailing white spaces
                 my @elem = split(/\s+/, $line);
-                $attributes->{$elem[0]} = $elem[9];
+                $data->{$elem[0]} = $elem[9];
             }
         }
     }
 
-    return $attributes;
+    return $data;
 }
 
 
 # modify_smart_values
 #
-# filter and modify raw smart attributes using $SMART_VALUE_MODIFIER constants
+# filter and modify raw smart values using $SMART_VALUE_MODIFIER constants
 
 sub modify_smart_values {
     my $devices = shift;
@@ -443,22 +443,22 @@ sub print_config {
 sub print_root_config {
     my $device_values = shift;
 
-    # fetch attribute lists sorted with numerical order
+    # fetch value lists sorted with numerical order
     foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
         my @devices_have_id = map { $_ } grep { exists $device_values->{$_}{'value'}{$id} }
             keys %$device_values;
         if (! @devices_have_id) {
-            # no device has S.M.A.R.T. attribute of $id
+            # no device has S.M.A.R.T. value of $id
             next;
         }
         my $message = $CONFIG_MESSAGE->{$id};
         print <<"EOF";
 multigraph ${plugin_name}_id${id}
-graph_title $id: $message->{'attribute_name'} per device
+graph_title $id: $message->{'title_of_value'} per device
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
-graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'attribute_name'} (ID: $id) for each devices.
+graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'title_of_value'} (ID: $id) for each devices.
 EOF
         foreach my $device (sort keys %$device_values) {
             if (! exists $device_values->{$device}{'value'}{$id}) {
@@ -468,7 +468,7 @@ EOF
             print <<"EOF";
 ${fieldname}.label $device
 ${fieldname}.type GAUGE
-${fieldname}.info $message->{'attribute_name'} (ID: $id) of $device in $message->{'graph_vlabel'}
+${fieldname}.info $message->{'title_of_value'} (ID: $id) of $device in $message->{'graph_vlabel'}
 ${fieldname}.min 0
 EOF
         }
@@ -478,26 +478,26 @@ EOF
 # Print configration texts for each device graph
 sub print_device_config {
     my $device = shift;
-    my $device_attributes = shift;
+    my $device_values = shift;
 
-    # fetch attribute lists sorted with numerical order
+    # fetch value lists sorted with numerical order
     foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
-        if (! exists $device_attributes->{'value'}{$id}) {
-            # this device does not have $id attribute
+        if (! exists $device_values->{'value'}{$id}) {
+            # this device does not have $id value
             next;
         }
         my $message = $CONFIG_MESSAGE->{$id};
         my $fieldname = "id$id";
         print <<"EOF";
-multigraph ${plugin_name}_id${id}.$device_attributes->{'normalized_sn'}
-graph_title $id: $message->{'attribute_name'} for $device
+multigraph ${plugin_name}_id${id}.$device_values->{'normalized_sn'}
+graph_title $id: $message->{'title_of_value'} for $device
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
-graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'attribute_name'} (ID: $id) for $device (Model: $device_attributes->{'info'}{'device_model'}, S/N: $device_attributes->{'info'}{'serial_number'}).
-${fieldname}.label $message->{'attribute_name'}
+graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'title_of_value'} (ID: $id) for $device (Model: $device_values->{'info'}{'device_model'}, S/N: $device_values->{'info'}{'serial_number'}).
+${fieldname}.label $message->{'title_of_value'}
 ${fieldname}.type GAUGE
-${fieldname}.info $message->{'attribute_name'} (ID: $id) of $device in $message->{'graph_vlabel'}
+${fieldname}.info $message->{'title_of_value'} (ID: $id) of $device in $message->{'graph_vlabel'}
 ${fieldname}.min 0
 EOF
     }
@@ -527,7 +527,7 @@ sub print_root_graph {
         my @devices_have_id = map { $_ } grep { exists $device_values->{$_}{'value'}{$id} }
             keys %$device_values;
         if (! @devices_have_id) {
-            # no device has S.M.A.R.T. attribute of $id
+            # no device has S.M.A.R.T. value of $id
             next;
         }
         print <<"EOF";
@@ -547,16 +547,16 @@ EOF
 
 # Print data for each device graph
 sub print_device_graph {
-    my $device_attributes = shift;
+    my $device_values = shift;
 
     foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
-        if (! exists $device_attributes->{'value'}{$id}) {
+        if (! exists $device_values->{'value'}{$id}) {
             next;
         }
         my $fieldname = "id$id";
         print <<"EOF";
-multigraph ${plugin_name}_id${id}.$device_attributes->{'normalized_sn'}
-${fieldname}.value $device_attributes->{'value'}{$id}
+multigraph ${plugin_name}_id${id}.$device_values->{'normalized_sn'}
+${fieldname}.value $device_values->{'value'}{$id}
 EOF
     }
 }
