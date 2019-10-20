@@ -105,12 +105,12 @@ my $SMART_VALUE_MODIFIER = [
             device_model => 'PLEXTOR PX-G128M6e',
         },
         value => {
-            5 => 1,
-            9 => 1 / 24,    # hours to days
-            12 => 1,
-            177 => 1,
-            241 => 32 * 1024 * 1024,
-            242 => 32 * 1024 * 1024,
+            id5 => 1,
+            id9 => 1 / 24,    # hours to days
+            id12 => 1,
+            id177 => 1,
+            id241 => 32 * 1024 * 1024,
+            id242 => 32 * 1024 * 1024,
         },
     },
     {
@@ -120,11 +120,11 @@ my $SMART_VALUE_MODIFIER = [
             # device on shizuku gives weird values on *Hours attributes
         },
         value => {
-            5 => 1,
-            12 => 1,
-            197 => 1,
-            241 => 512,
-            242 => 512,
+            id5 => 1,
+            id12 => 1,
+            id197 => 1,
+            id241 => 512,
+            id242 => 512,
         },
     },
     {
@@ -132,12 +132,12 @@ my $SMART_VALUE_MODIFIER = [
             device_model => 'ST4000DM004-2CV104',
         },
         value => {
-            5 => 1,
-            9 => 1 / 24,    # hours to days
-            12 => 1,
-            197 => 1,
-            241 => 512,
-            242 => 512,
+            id5 => 1,
+            id9 => 1 / 24,    # hours to days
+            id12 => 1,
+            id197 => 1,
+            id241 => 512,
+            id242 => 512,
         },
     },
     {
@@ -145,11 +145,11 @@ my $SMART_VALUE_MODIFIER = [
             device_model => 'SanDisk SSD U100 16GB',
         },
         value => {
-            5 => 1,
-            9 => 1 / 24,    # hours to days
-            12 => 1,
-            241 => 512,
-            242 => 512,
+            id5 => 1,
+            id9 => 1 / 24,    # hours to days
+            id12 => 1,
+            id241 => 512,
+            id242 => 512,
         },
     },
     {
@@ -157,68 +157,68 @@ my $SMART_VALUE_MODIFIER = [
             device_model => 'INTEL SSDSC2KW512G8',
         },
         value => {
-            5 => 1,
-            9 => 1 / 24,    # hours to days
-            12 => 1,
-            241 => 32 * 1024 * 1024,
-            242 => 32 * 1024 * 1024,
-            249 => 1024 * 1024 * 1024,
+            id5 => 1,
+            id9 => 1 / 24,    # hours to days
+            id12 => 1,
+            id241 => 32 * 1024 * 1024,
+            id242 => 32 * 1024 * 1024,
+            id249 => 1024 * 1024 * 1024,
         },
     },
     {
         # most devices come here (default modifier)
         # all S.M.A.R.T. IDs used in above devices need to be listed below
         value => {
-            5 => 1,
-            9 => 1 / 24,    # hours to days
-            12 => 1,
-            197 => 1,
-            177 => undef,
-            241 => undef,
-            242 => undef,
-            249 => undef,
+            id5 => 1,
+            id9 => 1 / 24,    # hours to days
+            id12 => 1,
+            id197 => 1,
+            id177 => undef,
+            id241 => undef,
+            id242 => undef,
+            id249 => undef,
         },
     },
 ];
 
 # hardcoded constants used to print config messages
 my $CONFIG_MESSAGE = {
-    5 => {
+    id5 => {
         title_of_value => 'Reallocated Sectors Count',
         graph_args => '--base 1000',
         graph_vlabel => 'counts',
     },
-    9 => {
+    id9 => {
         title_of_value => 'Power-On Hours [into days]',
         graph_args => '--base 1000',
         graph_vlabel => 'days',
     },
-    12 => {
+    id12 => {
         title_of_value => 'Power Cycle Count',
         graph_args => '--base 1000',
         graph_vlabel => 'counts',
     },
-    197 => {
+    id197 => {
         title_of_value => 'Current Pending Sector Count',
         graph_args => '--base 1000',
         graph_vlabel => 'counts',
     },
-    177 => {
+    id177 => {
         title_of_value => 'Wear Leveling Count',
         graph_args => '--base 1000',
         graph_vlabel => 'counts',
     },
-    241 => {
+    id241 => {
         title_of_value => 'Total LBAs Written',
         graph_args => '--base 1024',
         graph_vlabel => 'bytes',
     },
-    242 => {
+    id242 => {
         title_of_value => 'Total LBAs Read',
         graph_args => '--base 1024',
         graph_vlabel => 'bytes',
     },
-    249 => {
+    id249 => {
         title_of_value => 'NAND Writes',
         graph_args => '--base 1024',
         graph_vlabel => 'bytes',
@@ -403,16 +403,16 @@ sub modify_smart_values {
             # else => device is normal device
             # ... or both serial_number and device_model are matched
 
-            foreach my $id (keys %{$device->{'value'}}) {
-                if ($modifier->{'value'}{$id}) {
-                    $device->{'value'}{$id} *= $modifier->{'value'}{$id};
+            foreach my $index (keys %{$device->{'value'}}) {
+                if ($modifier->{'value'}{$index}) {
+                    $device->{'value'}{$index} *= $modifier->{'value'}{$index};
                 }
                 else {
-                    delete $device->{'value'}{$id};
+                    delete $device->{'value'}{$index};
                 }
             }
 
-            # generate 'id' to be used for munin data
+            # generate unique name to be used for munin data
             $device->{'normalized_sn'} = clean_fieldname($device->{'info'}{'serial_number'});
 
             # filter and modification must be done only once
@@ -444,31 +444,31 @@ sub print_root_config {
     my $device_values = shift;
 
     # fetch value lists sorted with numerical order
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
-        my @devices_have_id = map { $_ } grep { exists $device_values->{$_}{'value'}{$id} }
+    foreach my $index (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+        my @devices_have_value = map { $_ } grep { exists $device_values->{$_}{'value'}{$index} }
             keys %$device_values;
-        if (! @devices_have_id) {
-            # no device has S.M.A.R.T. value of $id
+        if (! @devices_have_value) {
+            # no device has S.M.A.R.T. value which key name is $index
             next;
         }
-        my $message = $CONFIG_MESSAGE->{$id};
+        my $message = $CONFIG_MESSAGE->{$index};
         print <<"EOF";
-multigraph ${plugin_name}_id${id}
-graph_title $id: $message->{'title_of_value'} per device
+multigraph ${plugin_name}_${index}
+graph_title $index: $message->{'title_of_value'} per device
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
-graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'title_of_value'} (ID: $id) for each devices.
+graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'title_of_value'} ($index) for each devices.
 EOF
         foreach my $device (sort keys %$device_values) {
-            if (! exists $device_values->{$device}{'value'}{$id}) {
+            if (! exists $device_values->{$device}{'value'}{$index}) {
                 next;
             }
-            my $fieldname = "$device_values->{$device}{'normalized_sn'}_id$id";
+            my $fieldname = "$device_values->{$device}{'normalized_sn'}_$index";
             print <<"EOF";
 ${fieldname}.label $device
 ${fieldname}.type GAUGE
-${fieldname}.info $message->{'title_of_value'} (ID: $id) of $device in $message->{'graph_vlabel'}
+${fieldname}.info $message->{'title_of_value'} ($index) of $device in $message->{'graph_vlabel'}
 ${fieldname}.min 0
 EOF
         }
@@ -481,23 +481,23 @@ sub print_device_config {
     my $device_values = shift;
 
     # fetch value lists sorted with numerical order
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
-        if (! exists $device_values->{'value'}{$id}) {
-            # this device does not have $id value
+    foreach my $index (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+        if (! exists $device_values->{'value'}{$index}) {
+            # this device does not have $index value
             next;
         }
-        my $message = $CONFIG_MESSAGE->{$id};
-        my $fieldname = "id$id";
+        my $message = $CONFIG_MESSAGE->{$index};
+        my $fieldname = "$index";
         print <<"EOF";
-multigraph ${plugin_name}_id${id}.$device_values->{'normalized_sn'}
-graph_title $id: $message->{'title_of_value'} for $device
+multigraph ${plugin_name}_${index}.$device_values->{'normalized_sn'}
+graph_title $index: $message->{'title_of_value'} for $device
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
-graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'title_of_value'} (ID: $id) for $device (Model: $device_values->{'info'}{'device_model'}, S/N: $device_values->{'info'}{'serial_number'}).
+graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'title_of_value'} ($index) for $device (Model: $device_values->{'info'}{'device_model'}, S/N: $device_values->{'info'}{'serial_number'}).
 ${fieldname}.label $message->{'title_of_value'}
 ${fieldname}.type GAUGE
-${fieldname}.info $message->{'title_of_value'} (ID: $id) of $device in $message->{'graph_vlabel'}
+${fieldname}.info $message->{'title_of_value'} ($index) of $device in $message->{'graph_vlabel'}
 ${fieldname}.min 0
 EOF
     }
@@ -523,23 +523,23 @@ sub print_graphs {
 sub print_root_graph {
     my $device_values = shift;
 
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
-        my @devices_have_id = map { $_ } grep { exists $device_values->{$_}{'value'}{$id} }
+    foreach my $index (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+        my @devices_have_value = map { $_ } grep { exists $device_values->{$_}{'value'}{$index} }
             keys %$device_values;
-        if (! @devices_have_id) {
-            # no device has S.M.A.R.T. value of $id
+        if (! @devices_have_value) {
+            # no device has S.M.A.R.T. value which key name is $index
             next;
         }
         print <<"EOF";
-multigraph ${plugin_name}_id${id}
+multigraph ${plugin_name}_${index}
 EOF
         foreach my $device (sort keys %$device_values) {
-            if (! exists $device_values->{$device}{'value'}{$id}) {
+            if (! exists $device_values->{$device}{'value'}{$index}) {
                 next;
             }
-            my $fieldname = "$device_values->{$device}{'normalized_sn'}_id$id";
+            my $fieldname = "$device_values->{$device}{'normalized_sn'}_$index";
         print <<"EOF";
-${fieldname}.value $device_values->{$device}{'value'}{$id}
+${fieldname}.value $device_values->{$device}{'value'}{$index}
 EOF
         }
     }
@@ -549,14 +549,14 @@ EOF
 sub print_device_graph {
     my $device_values = shift;
 
-    foreach my $id (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
-        if (! exists $device_values->{'value'}{$id}) {
+    foreach my $index (sort { $a <=> $b } keys %{$SMART_VALUE_MODIFIER->[-1]{'value'}}) {
+        if (! exists $device_values->{'value'}{$index}) {
             next;
         }
-        my $fieldname = "id$id";
+        my $fieldname = "$index";
         print <<"EOF";
-multigraph ${plugin_name}_id${id}.$device_values->{'normalized_sn'}
-${fieldname}.value $device_values->{'value'}{$id}
+multigraph ${plugin_name}_${index}.$device_values->{'normalized_sn'}
+${fieldname}.value $device_values->{'value'}{$index}
 EOF
     }
 }
