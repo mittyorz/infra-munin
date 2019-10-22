@@ -83,7 +83,16 @@ This plugin uses nvme (nvme-cli) for NVMe devices.
 
 =head2 Fields
 
+NVMe devices have many fields that are explained in Specifications.
+See https://nvmexpress.org/resources/specifications/ for more details.
+
+This plugin based on NVM Express 1.3d and NVM Express 1.4.
+
 =head2 Modifying value of fields
+
+'Available Spare Threshold' is threshold value, so ignored.
+'Data Units Read' and 'Data Units Written' are multiplied by 512 * 1000.
+'Power On Hours' is converted to `days` unit.
 
 =head1 MAGIC MARKERS
 
