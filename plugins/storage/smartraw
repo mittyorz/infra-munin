@@ -670,6 +670,10 @@ sub parse_nvme_id_ctrl {
     }
 
     if ($model and $serial) {
+        # trim leading and trailing white spaces
+        $model =~ s/\A\s+|\s+\z//g;
+        $serial =~ s/\A\s+|\s+\z//g;
+
         return {
             device_model => $model,
             serial_number => $serial,
