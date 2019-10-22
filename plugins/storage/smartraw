@@ -496,7 +496,8 @@ if ($device_values) {
     $device_values = modify_smart_values($device_values);
 }
 
-# dummy output for test
+
+# output config and actual values
 
 if ($ARGV[0] and $ARGV[0] eq 'config') {
     print_config($device_values);
