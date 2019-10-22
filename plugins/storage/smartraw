@@ -694,7 +694,10 @@ sub parse_nvme_smart_log {
             $field =~ s/\A\s+|\s+\z//g;
             $value =~ s/\A\s+|\s+\z//g;
 
-            $data->{ $NVME_FIELD2BYTE->{$field} } = $value;
+            # convert field name of 'nvme smart-log' to byte index
+            if (exists $NVME_FIELD2BYTE->{$field} ) {
+                $data->{ $NVME_FIELD2BYTE->{$field} } = $value;
+            }
         }
     }
 
