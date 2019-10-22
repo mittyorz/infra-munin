@@ -637,7 +637,7 @@ sub read_nvme {
     # so the actual thousands' grouping character used depentds on LC_NUMERIC
     # Save original LC_NUMERIC and change it to POSIX locale not to use any grouping character
     my $old_locale = setlocale(LC_NUMERIC);
-    setlocale(LC_NUMERIC => 'C')
+    setlocale(LC_NUMERIC, 'C')
         or carp "Failed to change LC_NUMERIC to POSIX";
 
     my $command = exists $ENV{'nvme_cli'} ? $ENV{'nvme_cli'} : '/usr/bin/nvme';
@@ -645,7 +645,7 @@ sub read_nvme {
         or croak "Failed to exec $command $subcommand $devicepath: $!";
 
     # restore orignal LC_NUMERIC
-    setlocale(LC_NUMERIC => $old_locale)
+    setlocale(LC_NUMERIC, $old_locale)
         or carp "Failed to change LC_NUMERIC original '$old_locale'";
 
     my @results = <$stdout>;
