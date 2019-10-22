@@ -23,6 +23,7 @@ This plugin needs root privilege to fetch S.M.A.R.T. values.
         env.devices sda sdb
 
 smartctl: path to smartctl program (default: /usr/sbin/smartctl)
+nvme_cli: path to nvme program (default: /usr/bin/nvme)
 devices: list of devices to monitor
 
 =head2 DEBUG
@@ -518,10 +519,22 @@ sub load_device_values {
 
     foreach my $device (@devices) {
         my $devicepath = '/dev/' . $device;
-        my $raw_smart_log = read_smart($devicepath);
-        
-        my $info = parse_smart_info($raw_smart_log);
-        my $value = parse_smart_data($raw_smart_log);
+        my $info;
+        my $value;
+        if ($device =~ /\Anvme/) {
+            my $nvme_id_ctrl  = read_nvme('id-ctrl' => $devicepath);
+            my $nvme_smart_log = read_nvme('smart-log' => $devicepath);
+
+            $info  = parse_nvme_id_ctrl($nvme_id_ctrl);
+            $value = parse_nvme_smart_log($nvme_smart_log);
+        }
+        else {
+            my $raw_smart_log = read_smart($devicepath);
+
+            $info  = parse_smart_info($raw_smart_log);
+            $value = parse_smart_data($raw_smart_log);
+        }
+
         if ($info and $value) {
             $device_values->{$device} = {
                 info => $info,
@@ -538,10 +551,10 @@ sub read_smart {
     my $devicepath = shift;
 
     my $command = exists $ENV{'smartctl'} ? $ENV{'smartctl'} : '/usr/sbin/smartctl';
-    open my $smartctl, '-|', $command, '-A', '-i', $devicepath
-        or croak "Failed to exec smartctl -A -i $devicepath: $!";
+    open my $stdout, '-|', $command, '-A', '-i', $devicepath
+        or croak "Failed to exec $command -A -i $devicepath: $!";
 
-    my @results = <$smartctl>;
+    my @results = <$stdout>;
     chomp @results;
     return \@results;
 }
@@ -606,6 +619,82 @@ sub parse_smart_data {
                 my @elem = split(/\s+/, $line);
                 $data->{'id' . $elem[0]} = $elem[9];
             }
+        }
+    }
+
+    return $data;
+}
+
+
+# exec nvme command and read its output
+sub read_nvme {
+    use POSIX qw(setlocale LC_NUMERIC);
+
+    my $subcommand = shift;
+    my $devicepath = shift;
+
+    # nvme-cli uses ' flag character in printf(),
+    # so the actual thousands' grouping character used depentds on LC_NUMERIC
+    # Save original LC_NUMERIC and change it to POSIX locale not to use any grouping character
+    my $old_locale = setlocale(LC_NUMERIC);
+    setlocale(LC_NUMERIC => 'C')
+        or carp "Failed to change LC_NUMERIC to POSIX";
+
+    my $command = exists $ENV{'nvme_cli'} ? $ENV{'nvme_cli'} : '/usr/bin/nvme';
+    open my $stdout, '-|', $command, $subcommand, $devicepath
+        or croak "Failed to exec $command $subcommand $devicepath: $!";
+
+    # restore orignal LC_NUMERIC
+    setlocale(LC_NUMERIC => $old_locale)
+        or carp "Failed to change LC_NUMERIC original '$old_locale'";
+
+    my @results = <$stdout>;
+    chomp @results;
+    return \@results;
+}
+
+# parse nvme id-ctrl
+sub parse_nvme_id_ctrl {
+    my $logs = shift;
+
+    my ($model, $serial);
+
+    foreach my $line (@$logs) {
+        if ($line =~ /\Amn\s+:\s(.+)/) {
+            $model = $1;
+        }
+        if ($line =~ /\Asn\s+:\s(.+)/) {
+            $serial = $1;
+        }
+    }
+
+    if ($model and $serial) {
+        return {
+            device_model => $model,
+            serial_number => $serial,
+        }
+    }
+    else {
+        return undef;
+    }
+}
+
+# parse nvme smart-log
+sub parse_nvme_smart_log {
+    my $logs = shift;
+
+    my $data;
+
+    foreach my $line (@$logs) {
+        if ($line =~ /\A(.+)\s+:\s+([x0-9a-f]+)/) {
+            my $field = $1;
+            my $value = $2;
+
+            # trim leading and trailing white spaces
+            $field =~ s/\A\s+|\s+\z//g;
+            $value =~ s/\A\s+|\s+\z//g;
+
+            $data->{ $NVME_FIELD2BYTE{$field} } = $value;
         }
     }
 
@@ -696,7 +785,7 @@ graph_title $index: $message->{'title_of_value'} per device
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
-graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'title_of_value'} ($index) for each devices.
+graph_info This graph shows the value of S.M.A.R.T. attribute/field $message->{'title_of_value'} ($index) for each devices.
 EOF
         foreach my $device (sort keys %$device_values) {
             if (! exists $device_values->{$device}{'value'}{$index}) {
@@ -732,7 +821,7 @@ graph_title $index: $message->{'title_of_value'} for $device
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
-graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'title_of_value'} ($index) for $device (Model: $device_values->{'info'}{'device_model'}, S/N: $device_values->{'info'}{'serial_number'}).
+graph_info This graph shows the value of S.M.A.R.T. attribute/field $message->{'title_of_value'} ($index) for $device (Model: $device_values->{'info'}{'device_model'}, S/N: $device_values->{'info'}{'serial_number'}).
 ${fieldname}.label $message->{'title_of_value'}
 ${fieldname}.type GAUGE
 ${fieldname}.info $message->{'title_of_value'} ($index) of $device in $message->{'graph_vlabel'}
