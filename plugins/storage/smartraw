@@ -23,6 +23,7 @@ This plugin needs root privilege to fetch S.M.A.R.T. values.
         env.devices sda sdb
 
 smartctl: path to smartctl program (default: /usr/sbin/smartctl)
+nvme_cli: path to nvme program (default: /usr/bin/nvme)
 devices: list of devices to monitor
 
 =head2 DEBUG
@@ -76,6 +77,23 @@ INTEL SSDSC2KW512G8
 
 All Devices
     convert 9: Power-On Hours to days ( 1/24 )
+
+=head1 NVMe devices
+
+This plugin uses nvme (nvme-cli) for NVMe devices.
+
+=head2 Fields
+
+NVMe devices have many fields that are explained in Specifications.
+See https://nvmexpress.org/resources/specifications/ for more details.
+
+This plugin based on NVM Express 1.3d and NVM Express 1.4.
+
+=head2 Modifying value of fields
+
+'Available Spare Threshold' is threshold value, so ignored.
+'Data Units Read' and 'Data Units Written' are multiplied by 512 * 1000.
+'Power On Hours' is converted to `days` unit.
 
 =head1 MAGIC MARKERS
 
@@ -180,7 +198,7 @@ my $SMART_VALUE_MODIFIER = [
         },
     },
     {
-        # most devices come here (default modifier)
+        # most devices including NVMe come here (default modifier)
         # all S.M.A.R.T. IDs used in above devices need to be listed below
         value => {
             id5 => 1,
@@ -196,9 +214,61 @@ my $SMART_VALUE_MODIFIER = [
             id241 => undef,
             id242 => undef,
             id249 => undef,
+
+            # NVMe smart-log modifier
+            b000    => 1,               # critical_warning
+            b001    => 1,               # temperature
+            b003    => 1,               # available_spare
+            b004    => undef,           # available_spare_threshold
+            b005    => 1,               # percentage_used
+            b032    => 512 * 1000,      # data_units_read
+            b048    => 512 * 1000,      # data_units_written
+            b064    => 1,               # host_read_commands
+            b080    => 1,               # host_write_commands
+            b096    => 1,               # controller_busy_time
+            b112    => 1,               # power_cycles
+            b128    => 1 / 24,          # power_on_hours (convert hours to days)
+            b144    => 1,               # unsafe_shutdowns
+            b160    => 1,               # media_errors
+            b176    => 1,               # num_err_log_entries
+            b192    => 1,               # Warning Temperature Time
+            b196    => 1,               # Critical Composite Temperature Time
+            b200    => 1,               # Temperature Sensor 1
+            b202    => 1,               # Temperature Sensor 2
+            b216    => 1,               # Thermal Management T1 Trans Count
+            b220    => 1,               # Thermal Management T2 Trans Count
+            b224    => 1,               # Thermal Management T1 Total Time
+            b228    => 1,               # Thermal Management T2 Total Time
         },
     },
 ];
+
+# convert field name of 'nvme smart-log' to byte index
+my $NVME_FIELD2BYTE = {
+    'critical_warning'                      => 'b000',
+    'temperature'                           => 'b001',
+    'available_spare'                       => 'b003',
+    'available_spare_threshold'             => 'b004',
+    'percentage_used'                       => 'b005',
+    'data_units_read'                       => 'b032',
+    'data_units_written'                    => 'b048',
+    'host_read_commands'                    => 'b064',
+    'host_write_commands'                   => 'b080',
+    'controller_busy_time'                  => 'b096',
+    'power_cycles'                          => 'b112',
+    'power_on_hours'                        => 'b128',
+    'unsafe_shutdowns'                      => 'b144',
+    'media_errors'                          => 'b160',
+    'num_err_log_entries'                   => 'b176',
+    'Warning Temperature Time'              => 'b192',
+    'Critical Composite Temperature Time'   => 'b196',
+    'Temperature Sensor 1'                  => 'b200',
+    'Temperature Sensor 2'                  => 'b202',
+    'Thermal Management T1 Trans Count'     => 'b216',
+    'Thermal Management T2 Trans Count'     => 'b220',
+    'Thermal Management T1 Total Time'      => 'b224',
+    'Thermal Management T2 Total Time'      => 'b228',
+};
 
 # hardcoded constants used to print config messages
 my $CONFIG_MESSAGE = {
@@ -267,6 +337,131 @@ my $CONFIG_MESSAGE = {
         graph_args => '--base 1024',
         graph_vlabel => 'bytes',
     },
+
+    # NVMe devices
+    b000 => {
+        title_of_value => 'Critical Warning',
+        graph_args => '--base 1000',
+        graph_vlabel => 'value',
+    },
+    b001 => {
+        title_of_value => 'Composite Temperature',
+        graph_args => '--base 1000',
+        graph_vlabel => 'degrees Celsius',
+    },
+    b003 => {
+        title_of_value => 'Available Spare',
+        graph_args => '--base 1000 --lower-limit 0 --upper-limit 100',
+        graph_vlabel => '% remaining',
+    },
+    b004 => {   # this field will not be used
+        title_of_value => 'Available Spare Threshold',
+        graph_args => '--base 1000 --lower-limit 0 --upper-limit 100',
+        graph_vlabel => '%',
+    },
+    b005 => {
+        title_of_value => 'Percentage Used',
+        graph_args => '--base 1000 --lower-limit 0 --upper-limit 100',
+        graph_vlabel => '% used',
+    },
+    b032 => {
+        title_of_value => 'Data Units Read',
+        graph_args => '--base 1024',
+        graph_vlabel => 'bytes',
+    },
+    b048 => {
+        title_of_value => 'Data Units Written',
+        graph_args => '--base 1024',
+        graph_vlabel => 'bytes',
+    },
+    b064 => {
+        title_of_value => 'Host Read Commands',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+    },
+    b080 => {
+        title_of_value => 'Host Write Commands',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+    },
+    b096 => {
+        title_of_value => 'Controller Busy Time',
+        graph_args => '--base 1000',
+        graph_vlabel => 'minutes',
+    },
+    b112 => {
+        title_of_value => 'Power Cycles',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+    },
+    b128 => {
+        title_of_value => 'Power On Hours [into days]',
+        graph_args => '--base 1000',
+        graph_vlabel => 'days',
+    },
+    b144 => {
+        title_of_value => 'Unsafe Shutdowns',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+    },
+    b160 => {
+        title_of_value => 'Media Errors',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+        graph_info => 'Media and Data Integrity Errors',
+    },
+    b176 => {
+        title_of_value => 'Num Err Log Entries',
+        graph_args => '--base 1000',
+        graph_vlabel => 'entries',
+        graph_info => 'Number of Error Information Log Entries',
+    },
+    b192 => {
+        title_of_value => 'Warning Comp Temp Time',
+        graph_args => '--base 1000',
+        graph_vlabel => 'minutes',
+        graph_info => 'Warning Composite Temperature Time',
+    },
+    b196 => {
+        title_of_value => 'Critical Comp Temp Time',
+        graph_args => '--base 1000',
+        graph_vlabel => 'minutes',
+        graph_info => 'Critical Composite Temperature Time',
+    },
+    b200 => {
+        title_of_value => 'Temperature Sensor 1',
+        graph_args => '--base 1000',
+        graph_vlabel => 'degrees Celsius',
+    },
+    b202 => {
+        title_of_value => 'Temperature Sensor 2',
+        graph_args => '--base 1000',
+        graph_vlabel => 'degrees Celsius',
+    },
+    b216 => {
+        title_of_value => 'Thermal Temp 1 Trans Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+        graph_info => 'Thermal Management Temperature 1 Transition Count',
+    },
+    b220 => {
+        title_of_value => 'Thermal Temp 2 Trans Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+        graph_info => 'Thermal Management Temperature 2 Transition Count',
+    },
+    b224 => {
+        title_of_value => 'Thermal Temp 1 Total Time',
+        graph_args => '--base 1000',
+        graph_vlabel => 'seconds',
+        graph_info => 'Total Time For Thermal Management Temperature 1',
+    },
+    b228 => {
+        title_of_value => 'Thermal Temp 2 Total Time',
+        graph_args => '--base 1000',
+        graph_vlabel => 'seconds',
+        graph_info => 'Total Time For Thermal Management Temperature 2',
+    },
 };
 
 if ($<) {
@@ -301,7 +496,8 @@ if ($device_values) {
     $device_values = modify_smart_values($device_values);
 }
 
-# dummy output for test
+
+# output config and actual values
 
 if ($ARGV[0] and $ARGV[0] eq 'config') {
     print_config($device_values);
@@ -324,10 +520,22 @@ sub load_device_values {
 
     foreach my $device (@devices) {
         my $devicepath = '/dev/' . $device;
-        my $raw_smart_log = read_smart($devicepath);
-        
-        my $info = parse_smart_info($raw_smart_log);
-        my $value = parse_smart_data($raw_smart_log);
+        my $info;
+        my $value;
+        if ($device =~ /\Anvme/) {
+            my $nvme_id_ctrl  = read_nvme('id-ctrl' => $devicepath);
+            my $nvme_smart_log = read_nvme('smart-log' => $devicepath);
+
+            $info  = parse_nvme_id_ctrl($nvme_id_ctrl);
+            $value = parse_nvme_smart_log($nvme_smart_log);
+        }
+        else {
+            my $raw_smart_log = read_smart($devicepath);
+
+            $info  = parse_smart_info($raw_smart_log);
+            $value = parse_smart_data($raw_smart_log);
+        }
+
         if ($info and $value) {
             $device_values->{$device} = {
                 info => $info,
@@ -344,10 +552,10 @@ sub read_smart {
     my $devicepath = shift;
 
     my $command = exists $ENV{'smartctl'} ? $ENV{'smartctl'} : '/usr/sbin/smartctl';
-    open my $smartctl, '-|', $command, '-A', '-i', $devicepath
-        or croak "Failed to exec smartctl -A -i $devicepath: $!";
+    open my $stdout, '-|', $command, '-A', '-i', $devicepath
+        or croak "Failed to exec $command -A -i $devicepath: $!";
 
-    my @results = <$smartctl>;
+    my @results = <$stdout>;
     chomp @results;
     return \@results;
 }
@@ -411,6 +619,89 @@ sub parse_smart_data {
                 $line =~ s/\A\s+|\s+\z//g;    # trim leading and trailing white spaces
                 my @elem = split(/\s+/, $line);
                 $data->{'id' . $elem[0]} = $elem[9];
+            }
+        }
+    }
+
+    return $data;
+}
+
+
+# exec nvme command and read its output
+sub read_nvme {
+    use POSIX qw(setlocale LC_NUMERIC);
+
+    my $subcommand = shift;
+    my $devicepath = shift;
+
+    # nvme-cli uses ' flag character in printf(),
+    # so the actual thousands' grouping character used depentds on LC_NUMERIC
+    # Save original LC_NUMERIC and change it to POSIX locale not to use any grouping character
+    my $old_locale = setlocale(LC_NUMERIC);
+    setlocale(LC_NUMERIC, 'C')
+        or carp "Failed to change LC_NUMERIC to POSIX";
+
+    my $command = exists $ENV{'nvme_cli'} ? $ENV{'nvme_cli'} : '/usr/bin/nvme';
+    open my $stdout, '-|', $command, $subcommand, $devicepath
+        or croak "Failed to exec $command $subcommand $devicepath: $!";
+
+    # restore orignal LC_NUMERIC
+    setlocale(LC_NUMERIC, $old_locale)
+        or carp "Failed to change LC_NUMERIC original '$old_locale'";
+
+    my @results = <$stdout>;
+    chomp @results;
+    return \@results;
+}
+
+# parse nvme id-ctrl
+sub parse_nvme_id_ctrl {
+    my $logs = shift;
+
+    my ($model, $serial);
+
+    foreach my $line (@$logs) {
+        if ($line =~ /\Amn\s+:\s(.+)/) {
+            $model = $1;
+        }
+        if ($line =~ /\Asn\s+:\s(.+)/) {
+            $serial = $1;
+        }
+    }
+
+    if ($model and $serial) {
+        # trim leading and trailing white spaces
+        $model =~ s/\A\s+|\s+\z//g;
+        $serial =~ s/\A\s+|\s+\z//g;
+
+        return {
+            device_model => $model,
+            serial_number => $serial,
+        }
+    }
+    else {
+        return undef;
+    }
+}
+
+# parse nvme smart-log
+sub parse_nvme_smart_log {
+    my $logs = shift;
+
+    my $data;
+
+    foreach my $line (@$logs) {
+        if ($line =~ /\A(.+)\s+:\s+([x0-9a-f]+)/) {
+            my $field = $1;
+            my $value = $2;
+
+            # trim leading and trailing white spaces
+            $field =~ s/\A\s+|\s+\z//g;
+            $value =~ s/\A\s+|\s+\z//g;
+
+            # convert field name of 'nvme smart-log' to byte index
+            if (exists $NVME_FIELD2BYTE->{$field} ) {
+                $data->{ $NVME_FIELD2BYTE->{$field} } = $value;
             }
         }
     }
@@ -502,7 +793,7 @@ graph_title $index: $message->{'title_of_value'} per device
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
-graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'title_of_value'} ($index) for each devices.
+graph_info This graph shows the value of S.M.A.R.T. attribute/field $message->{'title_of_value'} ($index) for each devices.
 EOF
         foreach my $device (sort keys %$device_values) {
             if (! exists $device_values->{$device}{'value'}{$index}) {
@@ -538,7 +829,7 @@ graph_title $index: $message->{'title_of_value'} for $device
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category smart
-graph_info This graph shows the value of S.M.A.R.T. attribute $message->{'title_of_value'} ($index) for $device (Model: $device_values->{'info'}{'device_model'}, S/N: $device_values->{'info'}{'serial_number'}).
+graph_info This graph shows the value of S.M.A.R.T. attribute/field $message->{'title_of_value'} ($index) for $device (Model: $device_values->{'info'}{'device_model'}, S/N: $device_values->{'info'}{'serial_number'}).
 ${fieldname}.label $message->{'title_of_value'}
 ${fieldname}.type GAUGE
 ${fieldname}.info $message->{'title_of_value'} ($index) of $device in $message->{'graph_vlabel'}
