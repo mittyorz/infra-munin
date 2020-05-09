@@ -1,0 +1,40 @@
+#!/bin/sh
+
+set -u
+
+warn () {
+    >&2 echo "$0: $@"
+}
+
+if [ $# -ne 2 ]; then
+    echo "usage: $0 /path/to/src/dbdir/ /path/to/dest/dbdir/"
+    echo "Both paths must end with a slash"
+    exit 1
+fi
+
+SRC=${1}
+DST=${2}
+
+if [ ! -f "${SRC}/datafile" ]; then
+    warn "${SRC} is not munin dbdir."
+    exit 1
+fi
+
+if [ -f "${DST}/datafile" ]; then
+    # see which is the new file
+
+    # get the time of last data modification
+    LM_SRC=$(stat -c '%Y' "${SRC}/datafile")
+    LM_DST=$(stat -c '%Y' "${DST}/datafile")
+
+    if [ "${LM_SRC}" -le "${LM_DST}" ]; then
+        echo "no update ('${DST}datafile' is same or newer than '${SRC}datafile')"
+        exit 0
+    fi
+fi
+
+# ${DST} does not exist yet or ${SRC} is newer than ${DST}
+# use --update to skip files are newer on ${DST}
+rsync --log-file=/var/log/munin-rsync.log \
+    --quiet -a --update --hard-links --delete --force --super --numeric-ids --timeout 600 \
+    ${SRC} ${DST}

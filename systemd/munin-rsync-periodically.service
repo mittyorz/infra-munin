@@ -1,0 +1,10 @@
+[Unit]
+Description=save munin dbdir to the persistent storage periodically
+ConditionPathExists=!/run/munin/munin-update.lock
+After=munin-rsync-load.service munin-rsync-save.service
+Requires=munin-rsync-load.service munin-rsync-save.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/munin/tools/munin-rsync /run/munin-dbdir/ /var/lib/munin/
+TimeoutStartSec=2m

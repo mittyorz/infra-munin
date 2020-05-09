@@ -1,0 +1,11 @@
+[Unit]
+Description=timer to save munin dbdir periodically
+After=local-fs.target
+After=munin-rsync-load.service munin-rsync-save.service
+Requires=munin-rsync-load.service munin-rsync-save.service
+
+[Timer]
+OnCalendar=*-*-* *:03
+
+[Install]
+WantedBy=multi-user.target

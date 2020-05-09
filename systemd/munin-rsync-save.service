@@ -1,0 +1,16 @@
+[Unit]
+Description=save munin dbdir to the persistent storage on shutdown
+After=-.mount tmp.mount
+BindsTo=-.mount tmp.mount
+After=munin-rsync-load.service
+Requires=munin-rsync-load.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/echo "Waiting shutdown action to save munin dbdir to the persistent storage"
+ExecStop=/opt/munin/tools/munin-rsync /run/munin-dbdir/ /var/lib/munin/
+TimeoutStopSec=5m
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
