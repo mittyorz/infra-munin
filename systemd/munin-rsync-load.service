@@ -1,0 +1,12 @@
+[Unit]
+Description=load munin dbdir from the persistent storage
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/munin/tools/munin-rsync /var/lib/munin/ /run/munin-dbdir/
+TimeoutStartSec=5m
+
+[Install]
+WantedBy=multi-user.target
