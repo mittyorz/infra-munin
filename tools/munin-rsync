@@ -35,6 +35,6 @@ fi
 
 # ${DST} does not exist yet or ${SRC} is newer than ${DST}
 # use --update to skip files are newer on ${DST}
-rsync --log-file=/var/log/munin-rsync.log \
+rsync --log-file=/var/log/rsync/munin-rsync.log \
     --quiet -a --update --hard-links --delete --force --super --numeric-ids --timeout 600 \
     ${SRC} ${DST}
