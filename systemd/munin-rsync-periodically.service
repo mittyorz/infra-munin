@@ -8,3 +8,6 @@ Requires=munin-rsync-load.service munin-rsync-save.service
 Type=oneshot
 ExecStart=/opt/munin/tools/munin-rsync /run/munin-dbdir/ /var/lib/munin/
 TimeoutStartSec=2m
+Nice=19
+CPUSchedulingPolicy=idle
+IOSchedulingClass=idle
