@@ -8,4 +8,4 @@ Requires=munin-rsync-load.service munin-rsync-save.service
 OnCalendar=*-*-* *:03
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=timers.target
