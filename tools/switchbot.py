@@ -7,8 +7,7 @@ import sys
 import os
 
 if len(sys.argv) < 2:
-    print(f'usage: {sys.argv[0]} MAC_address_of_SwtichBot [dir/path/to/save/result]')
-    sys.exit()
+    sys.exit(f'usage: {sys.argv[0]} MAC_address_of_SwtichBot [dir/path/to/save/result]')
 
 # MAC address for SwitchbotScanDelegate should be lower case
 mac = sys.argv[1].lower()
@@ -16,8 +15,7 @@ dir = os.getcwd()
 if len(sys.argv) >= 3:
     dir = sys.argv[2]
     if not os.path.isdir(dir):
-        print(f'{sys.argv[0]}: {dir} is not directory')
-        sys.exit()
+        sys.exit(f'{sys.argv[0]}: {dir} is not directory')
 
 class SwitchbotScanDelegate(btle.DefaultDelegate):
     def __init__(self, macaddr):
@@ -49,8 +47,7 @@ scanner = btle.Scanner().withDelegate(SwitchbotScanDelegate(mac))
 scanner.scan(5.0)
 
 if scanner.delegate.sensorValue is None:
-    print(f'{sys.argv[0]}: {mac} was not discovered')
-    sys.exit()
+    sys.exit(f'{sys.argv[0]}: {mac} was not discovered')
 
 # remove ':' from MAC address
 filename = mac.replace(':', '')
