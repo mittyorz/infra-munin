@@ -1,0 +1,9 @@
+[Unit]
+Description=Scan Bluetooth to save SwitchBot sensor data
+Requires=bluetooth.target
+
+[Service]
+RuntimeDirectory=switchbot
+RuntimeDirectoryPreserve=yes
+Type=oneshot
+ExecStart=/opt/munin/tools/switchbot -l /etc/switchbot/devices.txt -p /opt/munin/tools/switchbot.py -d /run/switchbot -r 3
