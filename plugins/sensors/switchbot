@@ -143,7 +143,6 @@ sub load_device_values {
     return $device_values;
 }
 
-use Data::Dumper;
 
 sub print_config {
     my $label_and_info = shift;
@@ -170,6 +169,7 @@ EOF
         }
     }
 }
+
 
 sub print_graphs {
     my $device_values = shift;
