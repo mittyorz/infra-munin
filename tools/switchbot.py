@@ -49,8 +49,6 @@ scanner.scan(5.0)
 if scanner.delegate.sensorValue is None:
     sys.exit(f'{sys.argv[0]}: {mac} was not discovered')
 
-# remove ':' from MAC address
-filename = mac.replace(':', '')
-with open(f'{dir}/{filename}', 'w') as f:
+with open(f'{dir}/{mac}', 'w') as f:
     for k, v in scanner.delegate.sensorValue.items():
         print(k, v, sep=' ', file=f)
