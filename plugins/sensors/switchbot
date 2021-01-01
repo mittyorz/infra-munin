@@ -131,7 +131,7 @@ sub load_device_values {
         open my $fh, '<', "$datadir/$mac" or croak "Failed to open '$datadir/$mac' to read: $!";
         foreach my $line (<$fh>) {
             chomp $line;
-            if ($line =~ /\A(\w+) +([0-9\.]+)\z/) {
+            if ($line =~ /\A(\w+) +(\-?[0-9\.]+)\z/) {
                 $device_values->{$mac}{$1} = $2;
             }
             else {
