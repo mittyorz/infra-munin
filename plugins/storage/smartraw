@@ -93,6 +93,7 @@ This plugin based on NVM Express 1.3d and NVM Express 1.4.
 
 =head2 Modifying value of fields
 
+'Critical Warning' is '0' or '0x' prefix, needs to be convert hex to decimal.
 'Available Spare Threshold' is threshold value, so ignored.
 'Data Units Read' and 'Data Units Written' are multiplied by 512 * 1000.
 'Power On Hours' is converted to `days` unit.
@@ -225,7 +226,7 @@ my $SMART_VALUE_MODIFIER = [
             id249 => undef,
 
             # NVMe smart-log modifier
-            b000    => 1,               # critical_warning
+            b000    => 'hex',           # critical_warning, convert Hex data to decimal
             b001    => 1,               # temperature
             b003    => 1,               # available_spare
             b004    => undef,           # available_spare_threshold
@@ -759,7 +760,13 @@ sub modify_smart_values {
 
             foreach my $index (keys %{$device->{'value'}}) {
                 if ($modifier->{'value'}{$index}) {
-                    $device->{'value'}{$index} *= $modifier->{'value'}{$index};
+                    if ($modifier->{'value'}{$index} eq 'hex') {
+                        # convert Hex data to decimal
+                        $device->{'value'}{$index} = hex($device->{'value'}{$index});
+                    }
+                    else {
+                        $device->{'value'}{$index} *= $modifier->{'value'}{$index};
+                    }
                 }
                 else {
                     delete $device->{'value'}{$index};
