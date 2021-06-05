@@ -44,7 +44,7 @@ This plugin uses smartctl (smartmontools) for non NVMe devices.
 
 Most normal devices give 5, 9, 12, 190, 192, 194, 196, 197, 198
 PLEXTOR PX-G128M6e also gives 177, 241 and 242
-Seagate Barracuda ST4000DM004-2CV104 also gives 241 and 242
+Seagate Barracuda ST4000DM004-2CV104 and ST6000DM003-2CY186 also gives 241 and 242
 SanDisk SDCZ80-016G (SanDisk SSD U100 16GB) gives 241 and 242
 INTEL SSDSC2KW512G8 gives 241, 242 and 249
 
@@ -70,7 +70,8 @@ PLEXTOR PX-G128M6e
     241: Total_LBAs_Written  => RAW_VALUE * 32 (MiB)
     242: Total_LBAs_Read => RAW_VALUE * 32 (MiB)
 
-Seagate Barracuda ST4000DM004-2CV104, SanDisk SDCZ80-016G and INTEL SSDSC2KW512G8
+Seagate Barracuda ST4000DM004-2CV104, ST6000DM003-2CY186,
+SanDisk SDCZ80-016G and INTEL SSDSC2KW512G8
     241: Total_LBAs_Written  => RAW_VALUE * 512 (Bytes)
     242: Total_LBAs_Read => RAW_VALUE * 512 (Bytes)
 
@@ -162,6 +163,23 @@ my $SMART_VALUE_MODIFIER = [
     {
         info => {
             device_model => 'ST4000DM004-2CV104',
+        },
+        value => {
+            id5 => 1,
+            id9 => 1 / 24,    # hours to days
+            id12 => 1,
+            id190 => 1,
+            id192 => 1,
+            id194 => 1,
+            id197 => 1,
+            id198 => 1,
+            id241 => 512,
+            id242 => 512,
+        },
+    },
+    {
+        info => {
+            device_model => 'ST6000DM003-2CY186',
         },
         value => {
             id5 => 1,
