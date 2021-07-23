@@ -5,6 +5,8 @@
 set -e
 set -u
 
+. "$MUNIN_LIBDIR/plugins/plugin.sh"
+
 cat <<'EOM'
 graph_title ZFS dataset compression ratio 
 graph_vlabel ratio 
@@ -15,9 +17,9 @@ EOM
 listing=$(zfs get -t filesystem -H compressratio)
 
 while read -r label _ ratio _; do
-	clean_label=$(echo "${label}" | sed -e 's|/|__|g')
-	echo "${clean_label}.label ${label}"
-	echo "${clean_label}.value ${ratio%x}"
+	field=$( clean_fieldname "${label}" )
+	echo "${field}.label ${label}"
+	echo "${field}.value ${ratio%x}"
 done <<eot
 ${listing}
 eot

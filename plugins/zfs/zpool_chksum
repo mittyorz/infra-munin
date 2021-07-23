@@ -5,6 +5,8 @@
 set -e
 set -u
 
+. "$MUNIN_LIBDIR/plugins/plugin.sh"
+
 cat <<'EOM'
 graph_title ZFS dataset error counters
 graph_vlabel amount of errors
@@ -15,18 +17,19 @@ EOM
 status=$(zpool status|awk 'BEGIN {p=0} /spares$/ || /^$/ {p=0} p==1 {print} /NAME.*STATE.*READ/ {p=1}')
 
 while read -r label _ r w c; do
-	echo "R${label}.label ${label} READ"
-	echo "R${label}.value ${r}"
-	echo "R${label}.warning 1"
-	echo "R${label}.critical 2"
-	echo "W${label}.label ${label} WRITE"
-	echo "W${label}.value ${w}"
-	echo "W${label}.warning 1"
-	echo "W${label}.critical 2"
-	echo "C${label}.label ${label} CHKSUM"
-	echo "C${label}.value ${c}"
-	echo "C${label}.warning 1"
-	echo "C${label}.critical 2"
+	field=$( clean_fieldname "${label}" )
+	echo "R${field}.label ${label} READ"
+	echo "R${field}.value ${r}"
+	echo "R${field}.warning 1"
+	echo "R${field}.critical 2"
+	echo "W${field}.label ${label} WRITE"
+	echo "W${field}.value ${w}"
+	echo "W${field}.warning 1"
+	echo "W${field}.critical 2"
+	echo "C${field}.label ${label} CHKSUM"
+	echo "C${field}.value ${c}"
+	echo "C${field}.warning 1"
+	echo "C${field}.critical 2"
 done <<eot
 ${status}
 eot
