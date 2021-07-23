@@ -15,15 +15,15 @@ EOM
 status=$(zpool status|awk 'BEGIN {p=0} /spares$/ || /^$/ {p=0} p==1 {print} /NAME.*STATE.*READ/ {p=1}')
 
 while read -r label _ r w c; do
-	echo "R${label}.label READ ${label} "
+	echo "R${label}.label ${label} READ"
 	echo "R${label}.value ${r}"
 	echo "R${label}.warning 1"
 	echo "R${label}.critical 2"
-	echo "W${label}.label WRITE ${label} "
+	echo "W${label}.label ${label} WRITE"
 	echo "W${label}.value ${w}"
 	echo "W${label}.warning 1"
 	echo "W${label}.critical 2"
-	echo "C${label}.label CHKSUM ${label}"
+	echo "C${label}.label ${label} CHKSUM"
 	echo "C${label}.value ${c}"
 	echo "C${label}.warning 1"
 	echo "C${label}.critical 2"
