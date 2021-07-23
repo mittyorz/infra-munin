@@ -8,7 +8,7 @@ set -u
 cat <<'EOM'
 graph_title ZFS dataset error counters
 graph_vlabel amount of errors
-graph_category ZFS
+graph_category fs
 graph_info This graph shows the ZFS dataset error counters for reads, writes, and checksums
 EOM
 

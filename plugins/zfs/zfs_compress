@@ -8,7 +8,7 @@ set -u
 cat <<'EOM'
 graph_title ZFS dataset compression ratio 
 graph_vlabel ratio 
-graph_category ZFS
+graph_category fs
 graph_info This graph shows the ZFS dataset compression ratio
 EOM
 
