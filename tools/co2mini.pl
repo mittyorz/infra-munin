@@ -9,7 +9,7 @@ use Fcntl;
 $| = 1;
 
 
-my $device = "/dev/co2mini";
+my $device = "/dev/hidraw0";
 
 # Result of printf("0x%08X\n", HIDIOCSFEATURE(9)); in C
 my $HIDIOCSFEATURE_9 = 0xC0094806;
@@ -56,7 +56,7 @@ while (1) {
 		#printf("%s : Co2 = %s ppm, Temp = %.2f degC\n", $date, $result{"P"}, $result{"B"});
 		printf("Co2 = %s ppm, Temp = %.2f degC\n", $result{"P"}, $result{"B"});
 		%result = ();
-		sleep 15;
+		exit();
 	}
 
 	#printf (".");
