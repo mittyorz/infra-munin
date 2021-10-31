@@ -161,7 +161,7 @@ EOF
             my $label = $label_and_info->{$mac}{'label'};
             my $info  = $label_and_info->{$mac}{'info'};
             my $fieldname = clean_fieldname($mac);
-            print <<"EOF"
+            print <<"EOF";
 ${fieldname}.label $label
 ${fieldname}.type GAUGE
 ${fieldname}.info $info ($mac)
