@@ -1,0 +1,148 @@
+#!/usr/bin/perl
+
+# co2mini - MMunin multigraph plugin to monitor CO2-mini sensor
+#
+# Copyright (C) 2020 Ken-ichi Mito
+
+=head1 NAME
+
+co2mini - MMunin multigraph plugin to monitor CO2-mini sensor
+
+=head1 CONFIGURATION
+
+This plugin does not need any special privilege to fetch data,
+but needs to work in combination with tools/co2mini script.
+
+    [co2mini]
+        env.datafile  /run/co2mini
+
+=head1 MAGIC MARKERS
+
+ #%# family=manual
+ #%# capabilities=multigraph
+
+=head1 AUTHOR
+
+Ken-ichi Mito
+
+=head1 LICENSE
+
+2-clause BSD License
+
+=cut
+
+use strict;
+use warnings;
+use Carp;
+use utf8;
+
+use Munin::Plugin;
+
+my $DEBUG = defined $ENV{'debug'} ? $ENV{'debug'} : 0;
+my $plugin_name = $Munin::Plugin::me;
+
+# check current environment supports multigraph plugins
+need_multigraph();
+
+# hardcoded constants used to print config messages
+my $CONFIG_MESSAGE = {
+    CO2 => {
+        title_of_value => 'CO2',
+        graph_args     => '--base 1000',
+        graph_vlabel   => 'ppm',
+        graph_info     => 'This graph shows the concentration of CO2 of CO2-mini sensor. The sensor accuracy is +/-7% (0ppm - 2000ppm), +/-10% (2000ppm - ).',
+        warning        => '1000',
+    },
+    Temperature => {
+        title_of_value => 'Temperature',
+        graph_args     => '--base 1000',
+        graph_vlabel   => 'degrees Celsius',
+        graph_info     => 'This graph shows the degrees Celsius of temperature of CO2-mini sensor. The sensor accuracy is +/-1.5 deg.',
+    },
+};
+
+
+# say 'no' for autoconf
+if ($ARGV[0] and $ARGV[0] eq 'autoconf') {
+    print "no (you should setup manually this plugin\n";
+    exit 0;
+}
+
+my $datafile  = $ENV{'datafile'}  || '/run/co2mini';
+
+# load sensor values from co2mini.service data file
+my $device_values = load_device_values($datafile);
+
+
+# output config and actual values
+
+if ($ARGV[0] and $ARGV[0] eq 'config') {
+    print_config();
+    exit 0;
+}
+
+print_graphs($device_values);
+
+# end of plugin execution
+exit 0;
+
+
+sub load_device_values {
+    my $datafile = shift;
+    my $device_values;
+    
+    open my $fh, '<', "$datafile" or croak "Failed to open '$datafile' to read: $!";
+    foreach my $line (<$fh>) {
+        chomp $line;
+        if ($line =~ /\A(\w+) +(\-?[0-9\.]+)\z/) {
+            $device_values->{$1} = $2;
+        }
+        else {
+            carp "Cannot parse: '$line'";
+        }
+    }
+
+    return $device_values;
+}
+
+
+sub print_config {
+    foreach my $datatype (sort keys %$CONFIG_MESSAGE) {
+        my $message = $CONFIG_MESSAGE->{$datatype};
+        print <<"EOF";
+multigraph ${plugin_name}_${datatype}
+graph_title CO2-mini $message->{'title_of_value'} per device
+graph_args $message->{'graph_args'}
+graph_vlabel $message->{'graph_vlabel'}
+graph_category sensors
+graph_info $message->{'graph_info'}
+graph_scale no
+EOF
+        my $label = $message->{'title_of_value'};
+        my $info  = $message->{'title_of_value'};
+        my $fieldname = clean_fieldname(${datatype});
+        print <<"EOF";
+${fieldname}.label $label
+${fieldname}.type GAUGE
+${fieldname}.info $info ($message->{'graph_vlabel'})
+EOF
+        if (exists($message->{'warning'})) {
+            print "${fieldname}.warning $message->{'warning'}\n";
+        }
+    }
+}
+
+
+sub print_graphs {
+    my $device_values = shift;
+
+    foreach my $datatype (sort keys %$CONFIG_MESSAGE) {
+        print << "EOF";
+multigraph ${plugin_name}_${datatype}
+EOF
+        my $fieldname = clean_fieldname(${datatype});
+        print << "EOF";
+${fieldname}.value $device_values->{$datatype}
+EOF
+    }
+}

@@ -1,0 +1,7 @@
+[Unit]
+Description=Scan and save CO2-mini sensor data
+Requires=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/munin/tools/co2mini -p /opt/munin/tools/co2mini.pl -o /run/co2mini -r 3
