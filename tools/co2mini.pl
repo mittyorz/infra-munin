@@ -54,7 +54,9 @@ while (1) {
 		#my $date = sprintf("%04d-%02d-%02d-%02d:%02d:%02d",
 		#	$year + 1900, $mon + 1, $mday, $hour, $min, $sec);
 		#printf("%s : Co2 = %s ppm, Temp = %.2f degC\n", $date, $result{"P"}, $result{"B"});
-		printf("Co2 = %s ppm, Temp = %.2f degC\n", $result{"P"}, $result{"B"});
+		#printf("Co2 = %s ppm, Temp = %.2f degC\n", $result{"P"}, $result{"B"});
+		print "CO2 ", $result{"P"}, "\n";
+		print "Temperature ", $result{"B"}, "\n";
 		%result = ();
 		exit();
 	}
