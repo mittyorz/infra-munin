@@ -30,7 +30,7 @@ isexist () {
 
 
 # parse commandline arguments
-while getopts "l:p:d:r:" OPT; do
+while getopts "p:o:r:" OPT; do
     case $OPT in
         p)  CO2SCRIPT="$OPTARG"
             isexist "$CO2SCRIPT"
