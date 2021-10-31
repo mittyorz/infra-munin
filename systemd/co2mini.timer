@@ -1,0 +1,9 @@
+[Unit]
+Description=Scan and save CO2-mini sensor data every five minutes
+After=local-fs.target
+
+[Timer]
+OnCalendar=*-*-* *:03/5:00
+
+[Install]
+WantedBy=timers.target

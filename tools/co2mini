@@ -1,0 +1,101 @@
+#!/bin/sh
+
+set -u
+
+usage () {
+    cat <<'EOF'
+usage: $0 [-p path/to/co2mini.pl] [-o path/to/save/result] [-r retry count]
+
+ -p: file path to co2mini.pl script
+     default is '/opt/munin/tools/co2mini.pl'
+
+ -o: file path to save result
+     default is '/run/co2mini'
+
+ -r: retry count of each retrieval for CO2-mini sensor data
+     default is 3
+
+EOF
+}
+
+warn () {
+    >&2 echo "$0: $@"
+}
+
+isexist () {
+    [ -e "$1" ] && return 0
+    warn "$1 does not exist"
+    exit 1
+}
+
+
+# parse commandline arguments
+while getopts "l:p:d:r:" OPT; do
+    case $OPT in
+        p)  CO2SCRIPT="$OPTARG"
+            isexist "$CO2SCRIPT"
+            ;;
+        o)  DATAFILE="$OPTARG"
+            ;;
+        r)  RETRY="$OPTARG"
+            ;;
+    esac
+done
+shift $(( $OPTIND - 1 ))
+
+
+# check configuration and set default
+checkvar () {
+    unset _checkvar
+    set +u
+    eval "_checkvar=\$$1"
+    set -u
+    if [ -z "$_checkvar" ]; then
+        if [ $# -eq 2 ]; then
+            eval "$1=\"$2\""
+        else
+            warn "$1 is need to be set"
+            exit 1
+        fi
+    fi
+}
+
+
+# check configrations and set default value if not yet
+checkvar CO2SCRIPT "/opt/munin/tools/co2mini.pl"
+checkvar DATAFILE "/run/co2mini"
+checkvar RETRY "3"
+
+
+# Retry given command on failure
+retry() {
+    max_retry="$1"; shift
+    command="$@"
+
+    exec_count=0
+    until $command
+    do
+        exec_count=$(( exec_count + 1 ))
+        if [ $exec_count -ge $max_retry ]; then
+            warn "failed to exec '$command', reached to max retry ($max_retry)"
+            return 1
+        fi
+    done
+}
+
+
+# execute co2mini.pl
+ret=0
+retry $RETRY $CO2SCRIPT > $DATAFILE
+
+# check each return code to final result
+__ret=$?
+if [ $__ret -ne 0 ]; then
+    ret=$__ret
+fi
+
+
+if [ $ret -ne 0 ]; then
+    warn "something wrong on execution"
+    exit $ret
+fi
