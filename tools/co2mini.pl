@@ -9,7 +9,7 @@ use Fcntl;
 $| = 1;
 
 
-my $device = "/dev/hidraw0";
+my $device = "/dev/co2mini";
 
 # Result of printf("0x%08X\n", HIDIOCSFEATURE(9)); in C
 my $HIDIOCSFEATURE_9 = 0xC0094806;
