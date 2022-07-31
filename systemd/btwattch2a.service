@@ -6,5 +6,5 @@ Requires=bluetooth.target
 RuntimeDirectory=btwattch2a
 RuntimeDirectoryPreserve=yes
 Type=oneshot
-ExecStart=/opt/munin/tools/btwattch2a -l /etc/btwattch2a/devices.txt -p /opt/ruby-btwattch2a/munin.rb -d /run/btwattch2a -r 1
+ExecStart=/opt/munin/tools/btwattch2a -l /etc/btwattch2a/devices.txt -p /opt/ruby-btwattch2/munin.rb -d /run/btwattch2a -r 1
 TimeoutStartSec=1m
