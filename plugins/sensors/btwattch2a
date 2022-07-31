@@ -1,0 +1,189 @@
+#!/usr/bin/perl
+
+# btwattch2a - MMunin multigraph plugin to monitor RS-BTWATTCH2A sensor
+#
+# Copyright (C) 2020 Ken-ichi Mito
+
+=head1 NAME
+
+btwattch2a - MMunin multigraph plugin to monitor RS-BTWATTCH2A sensor
+
+=head1 CONFIGURATION
+
+This plugin does not need any special privilege to fetch data,
+but needs to work in combination with tools/btwattch2a script.
+
+    [btwattch2a]
+        env.listpath /etc/btwattch2a/devices.txt
+        env.datadir  /run/btwattch2a
+
+=head1 MAGIC MARKERS
+
+ #%# family=manual
+ #%# capabilities=multigraph
+
+=head1 AUTHOR
+
+Ken-ichi Mito
+
+=head1 LICENSE
+
+2-clause BSD License
+
+=cut
+
+use strict;
+use warnings;
+use Carp;
+use utf8;
+
+use Munin::Plugin;
+
+my $DEBUG = defined $ENV{'debug'} ? $ENV{'debug'} : 0;
+my $plugin_name = $Munin::Plugin::me;
+
+# check current environment supports multigraph plugins
+need_multigraph();
+
+# hardcoded constants used to print config messages
+my $CONFIG_MESSAGE = {
+    voltage => {
+        title_of_value => 'Voltage',
+        graph_args     => '--base 1000 --lower-limit 0',
+        graph_vlabel   => 'V',
+        graph_info     => 'This graph shows the voltage of RS-BTWATTCH2A sensor. The sensor accuracy is +/-1% (90V - 110V).',
+    },
+    ampere => {
+        title_of_value => 'Ampere',
+        graph_args     => '--base 1000 --lower-limit 0',
+        graph_vlabel   => 'A',
+        graph_info     => 'This graph shows the ampere of RS-BTWATTCH2A sensor. The sensor accuracy is +/-2% (100mA - 1A), +/-1% (1A - 15A).',
+    },
+    wattage => {
+        title_of_value => 'Wattage',
+        graph_args     => '--base 1000 --lower-limit 0',
+        graph_vlabel   => 'W',
+        graph_info     => 'This graph shows the wattage of RS-BTWATTCH2A sensor. The sensor accuracy is +/-2% (1W - 10W), +/-1% (10W - 1500W).',
+    },
+};
+
+
+# say 'no' for autoconf
+if ($ARGV[0] and $ARGV[0] eq 'autoconf') {
+    print "no (you should setup manually this plugin\n";
+    exit 0;
+}
+
+my $listpath = $ENV{'listpath'} || '/etc/btwattch2a/devices.txt';
+my $datadir  = $ENV{'datadir'}  || '/run/btwattch2a';
+
+# get label and info strings from device list file
+my $label_and_info = load_devices_from_list($listpath);
+
+# load sensor values from btwattch2a.service data directory
+my $device_values = load_device_values($datadir);
+
+
+# output config and actual values
+
+if ($ARGV[0] and $ARGV[0] eq 'config') {
+    print_config($label_and_info);
+    exit 0;
+}
+
+print_graphs($device_values);
+
+# end of plugin execution
+exit 0;
+
+
+sub load_devices_from_list {
+    my $listpath = shift;
+    my $label_and_info;
+
+    open my $fh, '<', $listpath or croak "Failed to open '$listpath' to read: $!";
+    foreach my $line (<$fh>) {
+        chomp $line;
+        if ($line =~ /\A([0-9a-fA-F:]+) +([^ ]+) +(.+)\z/) {
+            $label_and_info->{$1} = {
+                label => $2,
+                info  => $3,
+            };
+        }
+        else {
+            carp "Cannot parse: '$line'";
+        }
+    }
+
+    return $label_and_info;
+}
+
+
+sub load_device_values {
+    my $datadir = shift;
+    my $device_values;
+    
+    opendir(DIR, $datadir) or croak "Failed to opendir '$datadir' $!";
+    my @macs = grep {/\A[0-9a-fA-F:]+\z/} readdir(DIR);
+    closedir(DIR);
+
+    foreach my $mac (@macs) {
+        open my $fh, '<', "$datadir/$mac" or croak "Failed to open '$datadir/$mac' to read: $!";
+        foreach my $line (<$fh>) {
+            chomp $line;
+            if ($line =~ /\A(\w+) +(\-?[0-9\.]+)\z/) {
+                $device_values->{$mac}{$1} = $2;
+            }
+            else {
+                carp "Cannot parse: '$line'";
+            }
+        }
+    }
+
+    return $device_values;
+}
+
+
+sub print_config {
+    my $label_and_info = shift;
+
+    foreach my $datatype (sort keys %$CONFIG_MESSAGE) {
+        my $message = $CONFIG_MESSAGE->{$datatype};
+        print <<"EOF";
+multigraph ${plugin_name}_${datatype}
+graph_title RS-BTWATTCH2A $message->{'title_of_value'} per device
+graph_args $message->{'graph_args'}
+graph_vlabel $message->{'graph_vlabel'}
+graph_category sensors
+graph_info $message->{'graph_info'}
+graph_scale no
+EOF
+        foreach my $mac (sort keys %$label_and_info) {
+            my $label = $label_and_info->{$mac}{'label'};
+            my $info  = $label_and_info->{$mac}{'info'};
+            my $fieldname = clean_fieldname($mac);
+            print <<"EOF";
+${fieldname}.label $label
+${fieldname}.type GAUGE
+${fieldname}.info $info ($mac)
+EOF
+        }
+    }
+}
+
+
+sub print_graphs {
+    my $device_values = shift;
+
+    foreach my $datatype (sort keys %$CONFIG_MESSAGE) {
+        print << "EOF";
+multigraph ${plugin_name}_${datatype}
+EOF
+        foreach my $mac (sort keys %$device_values) {
+            my $fieldname = clean_fieldname($mac);
+            print << "EOF";
+${fieldname}.value $device_values->{$mac}{$datatype}
+EOF
+        }
+    }
+}
