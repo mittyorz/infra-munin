@@ -1,0 +1,10 @@
+[Unit]
+Description=Scan Bluetooth to save RS-BTWATTCH2A sensor data
+Requires=bluetooth.target
+
+[Service]
+RuntimeDirectory=btwattch2
+RuntimeDirectoryPreserve=yes
+Type=oneshot
+ExecStart=/opt/munin/tools/btwattch2a -l /etc/btwattch2a/devices.txt -p /opt/ruby-btwattch2/munin.rb -d /run/btwattch2 -r 1
+TimeoutStartSec=1m
