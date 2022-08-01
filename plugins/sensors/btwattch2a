@@ -49,19 +49,19 @@ need_multigraph();
 my $CONFIG_MESSAGE = {
     voltage => {
         title_of_value => 'Voltage',
-        graph_args     => '--base 1000 --lower-limit 0',
+        graph_args     => '--base 1000',
         graph_vlabel   => 'V',
         graph_info     => 'This graph shows the voltage of RS-BTWATTCH2A sensor. The sensor accuracy is +/-1% (90V - 110V).',
     },
     ampere => {
         title_of_value => 'Ampere',
-        graph_args     => '--base 1000 --lower-limit 0',
+        graph_args     => '--base 1000',
         graph_vlabel   => 'A',
         graph_info     => 'This graph shows the ampere of RS-BTWATTCH2A sensor. The sensor accuracy is +/-2% (100mA - 1A), +/-1% (1A - 15A).',
     },
     wattage => {
         title_of_value => 'Wattage',
-        graph_args     => '--base 1000 --lower-limit 0',
+        graph_args     => '--base 1000',
         graph_vlabel   => 'W',
         graph_info     => 'This graph shows the wattage of RS-BTWATTCH2A sensor. The sensor accuracy is +/-2% (1W - 10W), +/-1% (10W - 1500W).',
     },
