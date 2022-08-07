@@ -1,0 +1,12 @@
+[Unit]
+Description=Connect RS-BTWATTCH2A sensor with Bluetooth
+Requires=bluetooth.target
+After=bluetooth.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/munin/tools/btwattch2a-boot -l /etc/btwattch2a/devices.txt
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
