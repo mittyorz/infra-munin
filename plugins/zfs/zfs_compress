@@ -7,6 +7,9 @@ set -u
 
 . "$MUNIN_LIBDIR/plugins/plugin.sh"
 
+# set standard value
+ignore_datasets_pattern=${ignore_datasets_pattern:-}
+
 cat <<'EOM'
 graph_title ZFS dataset compression ratio 
 graph_vlabel ratio 
@@ -14,7 +17,12 @@ graph_category fs
 graph_info This graph shows the ZFS dataset compression ratio
 EOM
 
-listing=$(zfs get -t filesystem -H compressratio)
+# set listing, based on if the searh pattern is set
+if [ -n "$ignore_datasets_pattern" ]; then
+	listing=$(zfs get -t filesystem -H compressratio | grep -v "$ignore_datasets_pattern")
+else
+	listing=$(zfs get -t filesystem -H compressratio)
+fi
 
 while read -r label _ ratio _; do
 	field=$( clean_fieldname "${label}" )
