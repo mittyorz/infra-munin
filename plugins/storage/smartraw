@@ -145,24 +145,6 @@ my $SMART_VALUE_MODIFIER = [
     {
         info => {
             device_model => 'ST4000DM004-2CV104',
-            serial_number => 'WFN0HKE5',
-            # device on shizuku gives weird values on *Hours attributes
-        },
-        value => {
-            id5 => 1,
-            id12 => 1,
-            id190 => 1,
-            id192 => 1,
-            id194 => 1,
-            id197 => 1,
-            id198 => 1,
-            id241 => 512,
-            id242 => 512,
-        },
-    },
-    {
-        info => {
-            device_model => 'ST4000DM004-2CV104',
         },
         value => {
             id5 => 1,
