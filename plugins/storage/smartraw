@@ -765,6 +765,10 @@ sub modify_smart_values {
                         $device->{'value'}{$index} = hex($device->{'value'}{$index});
                     }
                     else {
+                        # certain device gives non numeric values such as "15588h+52m+36.405s"
+                        $device->{'value'}{$index} = $1 if $device->{'value'}{$index} =~ /^([+-]?[0-9]+)/;
+
+                        # multiply 'value' by 'modifier'
                         $device->{'value'}{$index} *= $modifier->{'value'}{$index};
                     }
                 }
