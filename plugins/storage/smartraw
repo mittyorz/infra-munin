@@ -21,10 +21,12 @@ This plugin needs root privilege to fetch S.M.A.R.T. values.
     [smartraw]
         user root
         env.devices sda sdb
+        env.dsat sdb
 
 smartctl: path to smartctl program (default: /usr/sbin/smartctl)
 nvme_cli: path to nvme program (default: /usr/bin/nvme)
 devices: list of devices to monitor
+dsat: list of devices to use '-d sat' with smartctl
 
 =head2 DEBUG
 
@@ -575,6 +577,19 @@ sub read_smart {
     my @options = ();
 
     push @options, '-A', '-i';
+
+    if (exists $ENV{'dsat'}) {
+        my $usedsat = 0;
+        foreach my $device (split(' ', $ENV{'dsat'})) {
+            if ('/dev/' . $device eq $devicepath) {
+                $usedsat = 1;
+            }
+        }
+        if ($usedsat) {
+            push @options, '-d','sat';
+        }
+    }
+
     open my $stdout, '-|', $command, @options, $devicepath
         or croak "Failed to exec $command " . join(' ', @options) . " $devicepath: $!";
 
