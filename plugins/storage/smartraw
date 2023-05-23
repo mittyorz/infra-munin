@@ -572,8 +572,11 @@ sub read_smart {
     my $devicepath = shift;
 
     my $command = exists $ENV{'smartctl'} ? $ENV{'smartctl'} : '/usr/sbin/smartctl';
-    open my $stdout, '-|', $command, '-A', '-i', $devicepath
-        or croak "Failed to exec $command -A -i $devicepath: $!";
+    my @options = ();
+
+    push @options, '-A', '-i';
+    open my $stdout, '-|', $command, @options, $devicepath
+        or croak "Failed to exec $command " . join(' ', @options) . " $devicepath: $!";
 
     my @results = <$stdout>;
     chomp @results;
