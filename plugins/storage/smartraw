@@ -49,6 +49,7 @@ PLEXTOR PX-G128M6e also gives 177, 241 and 242
 Seagate Barracuda ST4000DM004-2CV104 and ST6000DM003-2CY186 also gives 241 and 242
 SanDisk SDCZ80-016G (SanDisk SSD U100 16GB) gives 241 and 242
 INTEL SSDSC2KW512G8 gives 241, 242 and 249
+ADATA SP600NS34 (tested only with 256GB model) gives 241 and 242
 
   5: Reallocated Sectors Count
   9: Power-On Hours
@@ -205,6 +206,22 @@ my $SMART_VALUE_MODIFIER = [
             id241 => 32 * 1024 * 1024,
             id242 => 32 * 1024 * 1024,
             id249 => 1024 * 1024 * 1024,
+        },
+    },
+    {
+        info => {
+            device_model => 'ADATA SP600NS34',
+        },
+        value => {
+            id5 => 1,
+            id9 => 1 / 24,    # hours to days
+            id12 => 1,
+            id192 => 1,
+            id194 => 1,
+            id197 => 1,
+            id173 => 1,
+            id241 => 512,
+            id242 => 512,
         },
     },
     {
