@@ -44,7 +44,7 @@ This plugin uses smartctl (smartmontools) for non NVMe devices.
 
 =head2 Attributes
 
-Most normal devices give 5, 9, 12, 190, 192, 194, 196, 197, 198
+Most normal devices give 5, 9, 12, 190, 192, 193, 194, 196, 197, 198
 PLEXTOR PX-G128M6e also gives 177, 241 and 242
 Seagate Barracuda ST4000DM004-2CV104 and ST6000DM003-2CY186 also gives 241 and 242
 SanDisk SDCZ80-016G (SanDisk SSD U100 16GB) gives 241 and 242
@@ -57,6 +57,7 @@ Samsung SSD 870 EVO 2TB (MZ-77E2T0) gives 177, 190 and 241
  12: Power Cycle Count
 190: Airflow Temperature
 192: Power-off Retract Count
+193: Load Cycle Count
 194: Temperature
 196: Reallocation Event Count
 197: Current Pending Sector Count
@@ -156,6 +157,7 @@ my $SMART_VALUE_MODIFIER = [
             id12 => 1,
             id190 => 1,
             id192 => 1,
+            id193 => 1,
             id194 => 1,
             id197 => 1,
             id198 => 1,
@@ -173,6 +175,7 @@ my $SMART_VALUE_MODIFIER = [
             id12 => 1,
             id190 => 1,
             id192 => 1,
+            id193 => 1,
             id194 => 1,
             id197 => 1,
             id198 => 1,
@@ -247,6 +250,7 @@ my $SMART_VALUE_MODIFIER = [
             id12 => 1,
             id190 => 1,
             id192 => 1,
+            id193 => 1,
             id194 => 1,
             id196 => 1,
             id197 => 1,
@@ -337,6 +341,11 @@ my $CONFIG_MESSAGE = {
     },
     id192 => {
         title_of_value => 'Power-off Retract Count',
+        graph_args => '--base 1000',
+        graph_vlabel => 'counts',
+    },
+    id193 => {
+        title_of_value => 'Load Cycle Count',
         graph_args => '--base 1000',
         graph_vlabel => 'counts',
     },
