@@ -5,5 +5,4 @@ After=bluetooth.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/rfkill block %i
-ExecStart=/usr/bin/rfkill unblock %i
+ExecStart=/opt/munin/tools/rfkill-block-unblock %i

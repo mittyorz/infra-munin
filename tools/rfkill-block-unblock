@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -u
+
+warn () {
+    >&2 echo "$0: $@"
+}
+
+if [ $# -eq 0 ]; then
+    echo "usage: $0 devname"
+    exit 1
+fi
+
+DEV=$(/usr/bin/rfkill list | /usr/bin/grep "$1" | /usr/bin/cut -d':' -f1)
+
+/usr/bin/rfkill block ${DEV}
+/usr/bin/rfkill unblock ${DEV}
