@@ -1,0 +1,9 @@
+[Unit]
+Description=Reset Bluetooth Controller with rfkill block/unblock
+Requires=bluetooth.target
+After=bluetooth.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/rfkill block %i
+ExecStart=/usr/bin/rfkill unblock %i

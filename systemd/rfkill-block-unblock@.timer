@@ -1,0 +1,9 @@
+[Unit]
+Description=Reset Bluetooth Controller with rfkill block/unblock every five minutes
+After=local-fs.target bluetooth.target
+
+[Timer]
+OnCalendar=*-*-* *:01/5:00
+
+[Install]
+WantedBy=timers.target
