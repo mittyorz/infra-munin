@@ -1,0 +1,8 @@
+[Unit]
+Description=Reset Bluetooth Controller with rfkill block/unblock
+Requires=bluetooth.target
+After=bluetooth.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/munin/tools/rfkill-block-unblock %i
