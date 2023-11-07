@@ -17,5 +17,14 @@ EOM
         ;;
 esac
 
+if [ -x /opt/vc/bin/vcgencmd ]; then
+    CMD="/opt/vc/bin/vcgencmd"
+elif [ -x /usr/bin/vcgencmd ]; then
+    CMD="/usr/bin/vcgencmd"
+else
+    >&2 echo "$0: vcgencmd executable was not found."
+    exit 1
+fi
+
 echo -n "temp.value "
-/opt/vc/bin/vcgencmd measure_temp | cut -d "=" -f2 | cut -d "'" -f1
+$CMD measure_temp | cut -d "=" -f2 | cut -d "'" -f1
