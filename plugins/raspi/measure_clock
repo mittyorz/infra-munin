@@ -19,7 +19,16 @@ done
         ;;
 esac
 
+if [ -x /opt/vc/bin/vcgencmd ]; then
+    CMD="/opt/vc/bin/vcgencmd"
+elif [ -x /usr/bin/vcgencmd ]; then
+    CMD="/usr/bin/vcgencmd"
+else
+    >&2 echo "$0: vcgencmd executable was not found."
+    exit 1
+fi
+
 for target in $target_lists; do
     echo -n "$target.value "
-    /opt/vc/bin/vcgencmd measure_clock $target | cut -d "=" -f2
+    $CMD measure_clock $target | cut -d "=" -f2
 done
