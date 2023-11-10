@@ -93,5 +93,18 @@ sub dumplog {
     my $hd2 = shift;
     my $packetlog = shift;
 
-    print join (",", $hd1, $hd2, $packetlog), "\n";
+    unless (open my $fh, ">", "$datadir/usage.$hd1.$hd2") {
+        carp "cannot open $datadir/usage.$hd1.$hd2";
+        return;
+    }
+    else {
+        foreach my $log (@{$packetlog}) {
+            print $fh join(
+                ",",
+                $log->{date},
+                $log->{withCoupon},
+                $log->{withoutCoupon},
+            ), "\n";
+        }
+    };
 }
