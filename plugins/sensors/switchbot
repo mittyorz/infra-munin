@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
-# switchbot - MMunin multigraph plugin to monitor switchbot sensor
+# switchbot - Munin multigraph plugin to monitor switchbot sensor
 #
 # Copyright (C) 2020 Ken-ichi Mito
 
 =head1 NAME
 
-switchbot - MMunin multigraph plugin to monitor switchbot sensor
+switchbot - Munin multigraph plugin to monitor switchbot sensor
 
 =head1 CONFIGURATION
 

@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
-# co2mini - MMunin multigraph plugin to monitor CO2-mini sensor
+# co2mini - Munin multigraph plugin to monitor CO2-mini sensor
 #
 # Copyright (C) 2020 Ken-ichi Mito
 
 =head1 NAME
 
-co2mini - MMunin multigraph plugin to monitor CO2-mini sensor
+co2mini - Munin multigraph plugin to monitor CO2-mini sensor
 
 =head1 CONFIGURATION
 

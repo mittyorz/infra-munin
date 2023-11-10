@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
-# btwattch2a - MMunin multigraph plugin to monitor RS-BTWATTCH2A sensor
+# btwattch2a - Munin multigraph plugin to monitor RS-BTWATTCH2A sensor
 #
 # Copyright (C) 2020 Ken-ichi Mito
 
 =head1 NAME
 
-btwattch2a - MMunin multigraph plugin to monitor RS-BTWATTCH2A sensor
+btwattch2a - Munin multigraph plugin to monitor RS-BTWATTCH2A sensor
 
 =head1 CONFIGURATION
 
