@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 
-# smartraw - MMunin multigraph plugin to monitor raw S.M.A.R.T. values,
+# smartraw - Munin multigraph plugin to monitor raw S.M.A.R.T. values,
 # from storage devices with smartctl command
 #
 # Copyright (C) 2019 Ken-ichi Mito
 
 =head1 NAME
 
-smartraw - MMunin multigraph plugin to monitor raw S.M.A.R.T. values,
+smartraw - Munin multigraph plugin to monitor raw S.M.A.R.T. values,
 from storage devices with smartctl command
 
 =head1 APPLICABLE SYSTEMS
