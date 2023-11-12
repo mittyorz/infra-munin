@@ -1,18 +1,18 @@
 #!/usr/bin/perl
 
-# iijmio-usage - Munin multigraph plugin to monitor data transfer amount of IIJmio service
+# iijmio_usage - Munin multigraph plugin to monitor data transfer amount of IIJmio service
 # Copyright (C) 2023 Ken-ichi Mito
 
 =head1 NAME
 
-iijmio-usage - Munin multigraph plugin to monitor data transfer amount of IIJmio service
+iijmio_usage - Munin multigraph plugin to monitor data transfer amount of IIJmio service
 
 =head1 CONFIGURATION
 
 This plugin does not need any special privilege to fetch data,
 but needs to work in combination with tools/iijmio-usage.pl script.
 
-    [iijmio-usage]
+    [iijmio_usage]
         env.datadir /run/iijmio
         env.plans total number of service plans (default: 1)
         env.planN_name plan name to be used as graph field label
