@@ -245,8 +245,10 @@ multigraph ${plugin_name}_${datatype}
 EOF
         foreach my $name (@{$names}) {
             my $fieldname = clean_fieldname($name);
+            # convert MB to bytes, use 1000x instead of 1024x due to IIJmio treats 1GB as 1000MB
+            my $value = $planstate->{$name}{$datatype} * 1000 * 1000;
             print << "EOF";
-${fieldname}.value $planstate->{$name}{$datatype}
+${fieldname}.value $value
 EOF
         }
     }
