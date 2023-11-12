@@ -87,6 +87,10 @@ if ($res->is_success) {
         }
     }
 }
+else {
+    print STDERR $res->status_line, ": ", $endpoint, "\n";
+    print STDERR $res->content, "\n";
+}
 
 sub dumplog {
     my $hd1 = shift;
