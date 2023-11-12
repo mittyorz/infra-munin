@@ -1,0 +1,9 @@
+[Unit]
+Description=retrieve usage log of data transfer amount of IIJmio service every hou
+After=network.target
+
+[Timer]
+OnCalendar=*-*-* *:03
+
+[Install]
+WantedBy=timers.target

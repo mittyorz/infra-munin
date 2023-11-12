@@ -1,0 +1,9 @@
+[Unit]
+Description=retrieve usage log of data transfer amount of IIJmio service
+Requires=network.target
+
+[Service]
+RuntimeDirectory=iijmio
+RuntimeDirectoryPreserve=yes
+Type=oneshot
+ExecStart=/opt/munin/tools/iijmio-usage.pl /etc/iijmio/usage.conf
