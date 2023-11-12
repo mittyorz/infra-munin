@@ -1,0 +1,255 @@
+#!/usr/bin/perl
+
+# iijmio_usage - Munin multigraph plugin to monitor data transfer amount of IIJmio service
+# Copyright (C) 2023 Ken-ichi Mito
+
+=head1 NAME
+
+iijmio_usage - Munin multigraph plugin to monitor data transfer amount of IIJmio service
+
+=head1 CONFIGURATION
+
+This plugin does not need any special privilege to fetch data,
+but needs to work in combination with tools/iijmio-usage.pl script.
+
+    [iijmio_usage]
+        env.datadir /run/iijmio
+        env.plans total number of service plans (default: 1)
+        env.planN_name plan name to be used as graph field label
+        env.planN_amount Max data amount of the plan (default: 20)
+        env.planN_hd1 hddServiceCode of the plan
+        env.pnanN_hd2 hdoServiceCode, hduServiceCode or hdxServiceCode of the plan
+
+if you have data sharing settings enabled,
+https://api.iijmio.jp/mobile/d/v2/coupon/ does not give data amount information.
+so you need to set a value to planN_amount
+see also https://help.iijmio.jp/answer/60b5a39989f530001924d21b, https://twitter.com/iijmio/status/1449578767295205381
+
+=head2 DEBUG
+
+This plugin does not use MUNIN_DEBUG environment variable,
+but for debugging usage, setting env.debug to 1 outputs more verbose messages to stderr.
+
+=head1 MAGIC MARKERS
+
+ #%# family=manual
+ #%# capabilities=multigraph
+
+=head1 AUTHOR
+
+Ken-ichi Mito
+
+=head1 LICENSE
+
+2-clause BSD License
+
+=cut
+
+use 5.010;  # use Time::Piece
+use strict;
+use warnings;
+use Carp;
+use utf8;
+
+use Time::Piece;
+use MIME::Base64;
+use Storable qw(nfreeze thaw);
+use Munin::Plugin;
+
+use Data::Dumper;
+
+my $DEBUG = defined $ENV{'debug'} ? $ENV{'debug'} : 0;
+my $plugin_name = $Munin::Plugin::me;
+
+# check current environment supports multigraph plugins
+need_multigraph();
+
+# hardcoded constants used to print config messages
+# IIJmio treats 1GB as 1000MB (see https://twitter.com/iijmio/status/694269891935735809)
+my $CONFIG_MESSAGE = {
+    Remaining => {
+        title_of_value => 'Data amount remaining',
+        graph_args     => '--base 1000 --lower-limit 0',
+        graph_vlabel   => 'Bytes',
+        graph_info     => 'This graph shows remaining data amount for this month.',
+    },
+    Usage => {
+        title_of_value => 'Data usage',
+        graph_args     => '--base 1000',
+        graph_vlabel   => 'Bytes',
+        graph_info     => 'This graph shows data usage of today.',
+    },
+};
+
+# say 'no' for autoconf
+if ($ARGV[0] and $ARGV[0] eq 'autoconf') {
+    print "no (you should setup manually this plugin\n";
+    exit 0;
+}
+
+my $datadir = $ENV{'datadir'} || '/run/iijmio';
+my $plans   = $ENV{'plans'}   || 1;
+
+# restore_state(), update planstate, save_state()
+my ($planstate, $names) = update_planstate($datadir, $plans);
+
+# output config and actual values
+if ($ARGV[0] and $ARGV[0] eq 'config') {
+    print_config($planstate, $names);
+    exit 0;
+}
+
+print_graphs($planstate, $names);
+
+# end of plugin execution
+exit 0;
+
+
+sub update_planstate {
+    my $datadir = shift;
+    my $plans   = shift;
+
+
+    my %state = restore_state();
+    my $planstate = {};
+    my $names     = ();
+    if (defined $state{'planstate'}) {
+        $planstate = thaw decode_base64 $state{'planstate'};
+    }
+    for (my $i = 1; $i <= $plans; $i++) {
+        my $n = 'plan'.$i.'_';
+        my ($name, $amount, $hd1, $hd2);
+        unless (
+            ($name   = $ENV{$n.'name'})   &&
+            ($amount = $ENV{$n.'amount'}) &&
+            ($hd1    = $ENV{$n.'hd1'})    &&
+            ($hd2    = $ENV{$n.'hd2'})
+        ) {
+            carp "some of ${n}* environment values are undefined";
+            next;
+        }
+        push @{$names}, $name;
+
+        my $plan = $planstate->{$name};
+        my $packetlog = load_logs("$datadir/usage.$hd1.$hd2");
+        if (keys %{$packetlog}) {
+            foreach my $date (keys %{$packetlog}) {
+                if (defined $plan->{$date}){
+                    if ($plan->{$date}->{'with'} < $packetlog->{$date}->{'with'}) {
+                        $plan->{$date}->{'with'} = $packetlog->{$date}->{'with'};
+                    }
+                    if ($plan->{$date}->{'without'} < $packetlog->{$date}->{'without'}) {
+                        $plan->{$date}->{'without'} = $packetlog->{$date}->{'without'};
+                    }
+                }
+                else {
+                    $plan->{$date}->{'with'} = $packetlog->{$date}->{'with'};
+                    $plan->{$date}->{'without'} = $packetlog->{$date}->{'without'};
+                }
+            }
+        }
+
+        my $total = 0;
+        my $today = localtime()->ymd('');
+        my $yyyymm = substr($today, 0, 6);
+        for (my $i = 1; $i <= 31; $i++) {
+            my $day = ($i < 10) ? '0'.$i : $i;
+            if (defined $plan->{$yyyymm.$day}) {
+                $total += $plan->{$yyyymm.$day}->{'with'};
+            }
+        }
+        if (defined $plan->{'total'}->{$yyyymm}){
+            if ($plan->{'total'}->{$yyyymm} < $total) {
+                $plan->{'total'}->{$yyyymm} = $total;
+            }
+        }
+        else {
+            $plan->{'total'}->{$yyyymm} = $total;
+        }
+
+        $plan->{'Remaining'} = $amount * 1000 - $total;     # IIJmio treats 1GB as 1000MB
+        $plan->{'Usage'}     = ($plan->{$today}) ? $plan->{$today}->{'with'} : 0;
+
+        $planstate->{$name} = $plan;
+    }
+
+    $state{'planstate'} = encode_base64 nfreeze $planstate;
+    save_state(%state);
+
+    return (
+        $planstate,
+        $names,
+    );
+}
+
+
+sub load_logs {
+    my $file = shift;
+
+    my $packetlog = {};
+    my $fh;
+    unless (open $fh, '<', $file) {
+        carp "cannot open $file";
+        return {};
+    }
+
+    foreach my $line (<$fh>) {
+        chomp $line;
+        if ($line =~ /\A(\d+),(\d+),(\d+)\z/) {
+            $packetlog->{$1} = {
+                'with'    => $2,
+                'without' => $3,
+            };
+        }
+        else {
+            carp "Cannot parse: '$line'";
+        }
+    }
+
+    return $packetlog;
+}
+
+
+sub print_config {
+    my $planstate = shift;
+    my $names     = shift;
+
+    foreach my $datatype (sort keys %$CONFIG_MESSAGE) {
+        my $message = $CONFIG_MESSAGE->{$datatype};
+        print <<"EOF";
+multigraph ${plugin_name}_${datatype}
+graph_title $message->{'title_of_value'} per IIJmio plan
+graph_args $message->{'graph_args'}
+graph_vlabel $message->{'graph_vlabel'}
+graph_category network
+graph_info $message->{'graph_info'}
+EOF
+        foreach my $name (@{$names}) {
+            my $fieldname = clean_fieldname($name);
+            print <<"EOF";
+${fieldname}.label $name
+${fieldname}.type GAUGE
+EOF
+        }
+    }
+}
+
+
+sub print_graphs {
+    my $planstate = shift;
+    my $names     = shift;
+    
+    foreach my $datatype (sort keys %$CONFIG_MESSAGE) {
+        print << "EOF";
+multigraph ${plugin_name}_${datatype}
+EOF
+        foreach my $name (@{$names}) {
+            my $fieldname = clean_fieldname($name);
+            # convert MB to bytes, use 1000x instead of 1024x due to IIJmio treats 1GB as 1000MB
+            my $value = $planstate->{$name}{$datatype} * 1000 * 1000;
+            print << "EOF";
+${fieldname}.value $value
+EOF
+        }
+    }
+}
