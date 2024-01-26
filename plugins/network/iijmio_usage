@@ -16,14 +16,8 @@ but needs to work in combination with tools/iijmio-usage.pl script.
         env.datadir /run/iijmio
         env.plans total number of service plans (default: 1)
         env.planN_name plan name to be used as graph field label
-        env.planN_amount Max data amount of the plan (default: 20)
         env.planN_hd1 hddServiceCode of the plan
         env.pnanN_hd2 hdoServiceCode, hduServiceCode or hdxServiceCode of the plan
-
-if you have data sharing settings enabled,
-https://api.iijmio.jp/mobile/d/v2/coupon/ does not give data amount information.
-so you need to set a value to planN_amount
-see also https://help.iijmio.jp/answer/60b5a39989f530001924d21b, https://twitter.com/iijmio/status/1449578767295205381
 
 =head2 DEBUG
 
@@ -56,8 +50,6 @@ use MIME::Base64;
 use Storable qw(nfreeze thaw);
 use Munin::Plugin;
 
-use Data::Dumper;
-
 my $DEBUG = defined $ENV{'debug'} ? $ENV{'debug'} : 0;
 my $plugin_name = $Munin::Plugin::me;
 
@@ -67,17 +59,17 @@ need_multigraph();
 # hardcoded constants used to print config messages
 # IIJmio treats 1GB as 1000MB (see https://twitter.com/iijmio/status/694269891935735809)
 my $CONFIG_MESSAGE = {
-    Remaining => {
-        title_of_value => 'Data amount remaining',
+    Total => {
+        title_of_value => 'Total Data usage',
         graph_args     => '--base 1000 --lower-limit 0',
         graph_vlabel   => 'Bytes',
-        graph_info     => 'This graph shows remaining data amount for this month.',
+        graph_info     => 'This graph shows total data usage for this month. (measured in UTC time)',
     },
     Usage => {
         title_of_value => 'Data usage',
         graph_args     => '--base 1000',
         graph_vlabel   => 'Bytes',
-        graph_info     => 'This graph shows data usage of today.',
+        graph_info     => 'This graph shows data usage of today. (measured in UTC time)',
     },
 };
 
@@ -118,10 +110,9 @@ sub update_planstate {
     }
     for (my $i = 1; $i <= $plans; $i++) {
         my $n = 'plan'.$i.'_';
-        my ($name, $amount, $hd1, $hd2);
+        my ($name, $hd1, $hd2);
         unless (
             ($name   = $ENV{$n.'name'})   &&
-            ($amount = $ENV{$n.'amount'}) &&
             ($hd1    = $ENV{$n.'hd1'})    &&
             ($hd2    = $ENV{$n.'hd2'})
         ) {
@@ -150,7 +141,12 @@ sub update_planstate {
         }
 
         my $total = 0;
-        my $today = localtime()->ymd('');
+        ## use gmtime instead of localtime
+        # Data usage information of IIJmio API appears to be finalized at 3 a.m. the next day,
+        # so it would be better to calculate "the total usage" based on UTC rather than JST.
+        # This will cause the peak on the graph to deviate from the actual time,
+        # but it will make calculation more accurate.
+        my $today = gmtime()->ymd('');
         my $yyyymm = substr($today, 0, 6);
         for (my $i = 1; $i <= 31; $i++) {
             my $day = ($i < 10) ? '0'.$i : $i;
@@ -167,8 +163,8 @@ sub update_planstate {
             $plan->{'total'}->{$yyyymm} = $total;
         }
 
-        $plan->{'Remaining'} = $amount * 1000 - $total;     # IIJmio treats 1GB as 1000MB
-        $plan->{'Usage'}     = ($plan->{$today}) ? $plan->{$today}->{'with'} : 0;
+        $plan->{'Total'} = $total;
+        $plan->{'Usage'} = ($plan->{$today}) ? $plan->{$today}->{'with'} : 0;
 
         $planstate->{$name} = $plan;
     }
