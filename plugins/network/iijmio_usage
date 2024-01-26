@@ -214,7 +214,7 @@ sub print_config {
         my $message = $CONFIG_MESSAGE->{$datatype};
         print <<"EOF";
 multigraph ${plugin_name}_${datatype}
-graph_title $message->{'title_of_value'} per IIJmio plan
+graph_title IIJmio $message->{'title_of_value'} per plan
 graph_args $message->{'graph_args'}
 graph_vlabel $message->{'graph_vlabel'}
 graph_category network
